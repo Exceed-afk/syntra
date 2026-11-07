@@ -3,3 +3,9 @@ out
 dist
 # the design preview (npm run preview): a browser-only copy of the Review page, built fresh each run
 .preview
+# local tooling and app state, never part of the source tree
+.tooling/
+.freebuff/
+.cloud-attachments/
+err.log
+out.log
