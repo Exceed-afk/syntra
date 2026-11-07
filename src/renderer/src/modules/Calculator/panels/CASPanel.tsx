@@ -6,7 +6,19 @@ import type { CasOptions } from '../../../../../shared/calculator/modules/cas'
 import { casToLatex } from '../../../../../shared/calculator/latex'
 import { MathOutput } from '../MathOutput'
 
-type CasOp = 'simplify' | 'diff' | 'integrate' | 'limit' | 'subst' | 'solve' | 'taylor'
+type CasOp =
+  | 'simplify'
+  | 'expand'
+  | 'cancel'
+  | 'factor'
+  | 'diff'
+  | 'integrate'
+  | 'limit'
+  | 'limitExact'
+  | 'subst'
+  | 'solve'
+  | 'solveExact'
+  | 'taylor'
 
 export function CASPanel(_props: ModuleProps) {
   const [op, setOp] = useState<CasOp>('diff')
@@ -88,10 +100,15 @@ export function CASPanel(_props: ModuleProps) {
         {[
           ['diff', 'Derivative (d/dx)'],
           ['simplify', 'Simplify'],
+          ['cancel', 'Cancel Fractions'],
+          ['expand', 'Expand'],
+          ['factor', 'Factor'],
           ['integrate', 'Integrate (∫)'],
           ['limit', 'Limit'],
+          ['limitExact', 'Limit (exact)'],
           ['subst', 'Substitute'],
           ['solve', 'Solve Linear'],
+          ['solveExact', 'Solve (exact)'],
           ['taylor', 'Taylor Series']
         ].map(([id, label]) => (
           <button
@@ -101,8 +118,11 @@ export function CASPanel(_props: ModuleProps) {
             disabled={isRunning}
             onClick={() => {
               setOp(id as CasOp)
-              if (id === 'solve' && !inputExpr.includes('=')) {
-                setInputExpr('2*x + 5 = 15')
+              if ((id === 'solve' || id === 'solveExact') && !inputExpr.includes('=')) {
+                setInputExpr(id === 'solveExact' ? 'x^2 - 5*x + 6 = 0' : '2*x + 5 = 15')
+              }
+              if (id === 'limitExact') {
+                setExtraVal('0')
               }
             }}
           >
@@ -114,7 +134,7 @@ export function CASPanel(_props: ModuleProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
         <div className="md:col-span-2">
           <label className="text-muted block text-xs mb-1">
-            {op === 'solve' ? 'Equation (with =)' : 'Expression'}
+            {op === 'solve' || op === 'solveExact' ? 'Equation (with =)' : 'Expression'}
           </label>
           <input
             className="field w-full text-xs font-mono"
@@ -133,10 +153,10 @@ export function CASPanel(_props: ModuleProps) {
           />
         </div>
 
-        {(op === 'limit' || op === 'subst' || op === 'taylor') && (
+        {(op === 'limit' || op === 'limitExact' || op === 'subst' || op === 'taylor') && (
           <div>
             <label className="text-muted block text-xs mb-1">
-              {op === 'limit' ? 'Approaching' : op === 'subst' ? 'Substitute Value' : 'Degree'}
+              {op === 'limit' || op === 'limitExact' ? 'Approaching (a number or "inf")' : op === 'subst' ? 'Substitute Value' : 'Degree'}
             </label>
             <input
               className="field w-full text-xs font-mono"
