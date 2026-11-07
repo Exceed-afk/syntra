@@ -69,8 +69,26 @@ The current keypad is a small subset. Google's has these, in this order of usefu
 
 ## 4. Later (bigger maths)
 
-- [ ] Roots of polynomials above degree 3 (numeric method such as Durand-Kerner)
-- [ ] CAS: expand and factor, integrals of trig / exponential / log, systems of equations
+- [x] Roots of polynomials above degree 3 — PARTIAL 2026-11-07: the CAS solver reports exact rational roots at
+      any degree (rational-root theorem, each division verified exactly); numeric-only roots beyond that are
+      still not built (a numeric method such as Durand-Kerner remains deferred).
+- [x] **CAS: solve / expand / cancel / factor / limits** — done 2026-11-07: exact-rational polynomial engine in
+      `src/shared/calculator/modules/cas/` (`poly.ts` BigInt-rational polynomials + converter, `factor.ts` GCD
+      cancellation / factoring / solving). `casExpand` (products and integer powers, `(x+1)^2 → x^2 + 2*x + 1`),
+      `casCancel` (`(x^2-1)/(x-1) → x + 1`, `(2x^2+4x)/(6x) → (x + 2)/3`), `casFactor` (content first
+      `6x^2+12x → 6*x*(x + 2)`, exact rational roots, quadratic discriminant, repeated factors collected — no
+      floating-point root finding), `casSolve` (linear + quadratic formula with exact rational/surd roots and a
+      decimal companion, double roots labelled, `x = x + 1 → No solution`, `x = x → All values of x`, degree 3+
+      exact rational roots only, honest refusal otherwise), `casLimit` (finite points via cancellation, ±infinity
+      by degree comparison, a small standard table including `sin(x)/x → 1`, and one-sided ±infinity when they
+      differ). Every result passes a numeric self-check against the original expression before it is shown;
+      caps added: `casPolyDegree` 100, `casPolyTerms` 512, `casPolyCoefficientDigits` 1000.
+      BEHAVIOUR CHANGE: `casTaylorSeries` returned a `Taylor(expr, var, deg=d)` placeholder for unsupported
+      functions; it now throws an honest "not supported" error (exact series remain for e^x, sin(x), cos(x),
+      ln(1+x)). BEHAVIOUR CHANGE: `casIntegratePolynomial`'s hard-coded string table for indefinite integrals is
+      replaced by exact term-wise antiderivatives verified by differentiating back; `e^(x^2)` correctly says
+      "Could not solve" instead of the old wrong `<expr>*x + C`. `casSolveLinear` is unchanged for compatibility;
+      the panel's Solve (exact) uses `casSolve`.
 - [ ] Eigenvectors and n x n eigenvalues
 - [ ] LU, QR, SVD and Cholesky decompositions
 - [ ] Implicit graphs (`x^2 + y^2 = 25`) and inequality shading

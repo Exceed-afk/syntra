@@ -737,6 +737,15 @@ export function Calculator(props: ModuleProps) {
                     <li>
                       <strong className="text-fg">Permutations &amp; Combinations:</strong> Prefix function syntax: <code className="font-mono text-fg">nPr(n, r)</code> / <code className="font-mono text-fg">P(n, r)</code> and <code className="font-mono text-fg">nCr(n, r)</code> / <code className="font-mono text-fg">C(n, r)</code>.
                     </li>
+                    <li>
+                      <strong className="text-fg">CAS polynomial operations</strong> (Expand, Cancel, Factor, Solve exact, Limit exact) work on polynomials in <em>one variable</em>. Functions (<code className="font-mono text-fg">sin(x)</code>, <code className="font-mono text-fg">ln(x)</code>), the constants <code className="font-mono text-fg">pi</code>/<code className="font-mono text-fg">e</code>, and variables in exponents are refused with a clear message. Factoring is over the rationals: <code className="font-mono text-fg">x^2 + 1</code> stays as it is. Limits accept a number or <code className="font-mono text-fg">inf</code> as the target.
+                    </li>
+                    <li>
+                      <strong className="text-fg">Cancelling a fraction</strong> removes the point where the original was undefined: <code className="font-mono text-fg">(x^2 - 1)/(x - 1)</code> cancels to <code className="font-mono text-fg">x + 1</code>, true everywhere <em>except x = 1</em> (the original is 0/0 there).
+                    </li>
+                    <li>
+                      <strong className="text-fg">CAS honesty rule:</strong> every CAS answer is checked numerically before it is shown; when the engine cannot verify an answer it says <em>Could not solve</em> instead of guessing.
+                    </li>
                   </ul>
                 </div>
               )}
