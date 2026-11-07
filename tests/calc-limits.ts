@@ -18,7 +18,7 @@ import { computeStats, percentile, linearRegression, tTestOneSample } from '../s
 import { matrixDeterminant, matrixInverse, polynomialRootsReal } from '../src/shared/calculator/modules/linear-algebra'
 import { executeScript } from '../src/shared/calculator/modules/scripting'
 import { sampleFunction } from '../src/shared/calculator/modules/graphing'
-import { casSimplify } from '../src/shared/calculator/modules/cas'
+import { casSimplify, casExpand } from '../src/shared/calculator/modules/cas'
 import { Decimal } from '../src/shared/calculator/numeric'
 
 let checks = 0
@@ -225,6 +225,15 @@ timed('50x50 inverse', () => matrixInverse(makeMatrix(50)))
   assert.match(messageOf(err), /nesting depth is limited to 200/)
   ok()
 }
+{
+  // (x+1)^10000 would be a 10,000-degree polynomial: rejected by the degree cap
+  // BEFORE any multiplication happens, not after the work.
+  const err = timed('CAS expand of (x + 1)^10000', () => casExpand('(x + 1)^10000', 'x'), 100)
+  assert.ok(err instanceof CalcError)
+  assert.match(messageOf(err), /polynomial degree is limited to 100/)
+  ok()
+  timed('CAS expand at the degree cap boundary', () => casExpand('(x + 1)^100', 'x'), 500)
+}
 
 // ---------------------------------------------------------------------------
 // 6. The limit constants themselves
@@ -239,6 +248,9 @@ assert.equal(CALC_LIMITS.scriptSteps, 100_000)
 assert.equal(CALC_LIMITS.scriptRecursionDepth, 100)
 assert.equal(CALC_LIMITS.graphSampleCount, 10_000)
 assert.equal(CALC_LIMITS.exponentLimit, 100_000)
+assert.equal(CALC_LIMITS.casPolyDegree, 100)
+assert.equal(CALC_LIMITS.casPolyTerms, 512)
+assert.equal(CALC_LIMITS.casPolyCoefficientDigits, 1000)
 ok()
 
 console.log(`ok   ${checks} limit and pathological-input regression tests passed`)
