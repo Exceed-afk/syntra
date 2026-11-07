@@ -54,7 +54,22 @@ export const CALC_LIMITS = {
    * milliseconds) while anything near 2^53 would take minutes. Prime factorisation of
    * semiprimes near the cap is the slowest accepted case by design.
    */
-  primeNumberLimit: 10_000_000_000
+  primeNumberLimit: 10_000_000_000,
+  /**
+   * CAS polynomial caps (exact-rational engine, modules/cas/poly.ts). All three are
+   * enforced while BUILDING the polynomial from the parse tree, not after, so a
+   * hostile input such as (x+1)^10000 is rejected before any multiplication happens:
+   *   - degree 100: a quadratic-formula / rational-root solve is instant at this size,
+   *     and (x+1)^10000 (degree 10,000, tens of thousands of terms) would freeze the
+   *     worker without it.
+   *   - 512 terms: the dense coefficient array of an expanded polynomial; printing and
+   *     GCD work are linear in it.
+   *   - 1,000 digits per coefficient: exact BigInt arithmetic stays fast, and the
+   *     printed result stays readable.
+   */
+  casPolyDegree: 100,
+  casPolyTerms: 512,
+  casPolyCoefficientDigits: 1000
 } as const
 
 export type CalcLimitName = keyof typeof CALC_LIMITS
@@ -73,7 +88,10 @@ const LABELS: Record<CalcLimitName, string> = {
   graphSampleCount: 'graph sample count',
   exponentLimit: 'number magnitude',
   maxRoundingPlaces: 'decimal places',
-  primeNumberLimit: 'prime number'
+  primeNumberLimit: 'prime number',
+  casPolyDegree: 'polynomial degree',
+  casPolyTerms: 'polynomial term count',
+  casPolyCoefficientDigits: 'polynomial coefficient size'
 }
 
 export function limitMessage(limit: CalcLimitName, detail?: string): string {
