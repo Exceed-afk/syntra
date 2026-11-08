@@ -64,15 +64,13 @@ export function Assistant() {
   }
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Assistant" subtitle={
+    <div className="page">
+      <PageHeader title="Assistant" help={
         settings === null ? 'Loading…'
           : settings.provider === 'off' ? 'Off. Choose a provider on the Intelligence page.'
             : settings.provider === 'local' ? `Local model at ${settings.localUrl}. Follow-ups include only the previous function, range and filters — never its result.`
               : `Cloud provider at ${settings.cloudUrl}. Each question and the previous request's function, date range and filters for follow-ups are sent over the internet — see under every answer what was sent.`
-      }>
-        <MessageCircleQuestion size={20} className="text-accent" />
-      </PageHeader>
+      } />
 
       {settings && settings.provider === 'off' && (
         <div className="mt-5">

@@ -58,8 +58,8 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
   )
 
   return (
-    <div className="page">
-      <PageHeader title="Trades" subtitle={stats.total === 0 ? 'Track every trade, open or closed.' : `${stats.closed} closed, ${stats.open} open${hasFilter ? ' (filtered)' : ''}`}>
+    <div className="page page-wide">
+      <PageHeader title="Trades" help={stats.total === 0 ? 'Track every trade, open or closed. P&L is worked out from entry, exit, size and fees.' : `${stats.closed} closed, ${stats.open} open${hasFilter ? ' (filtered)' : ''}. P&L is worked out from entry, exit, size and fees.`}>
         <button className="btn-primary" onClick={() => setEditing('new')} title="Ctrl+N">
           <Plus size={16} /> New trade
         </button>

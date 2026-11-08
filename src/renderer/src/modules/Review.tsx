@@ -99,14 +99,11 @@ export function Review({ onOpen, onNavigate }: ModuleProps) { // eslint-disable-
   const step = (delta: number) => setAnchor(shiftRange(kind, range, delta).start)
 
   const header = (
-    <PageHeader title="Review" subtitle={
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span>{periodLabel(kind, range.start, range.end)}</span>
-        {range.end >= now
-          ? <span className="badge badge-open">In progress</span>
-          : <span className="badge badge-done">Complete</span>}
-      </span>
-    }>
+    <PageHeader title="Review"
+      help={periodLabel(kind, range.start, range.end) + '. One summary of the week or month across trades, savings, habits, tasks and the journal; a saved reflection is a logbook entry tagged review.'}
+      badge={range.end >= now
+        ? <span className="badge badge-open" title={periodLabel(kind, range.start, range.end)}>In progress</span>
+        : <span className="badge badge-done" title={periodLabel(kind, range.start, range.end)}>Complete</span>}>
       <div className="seg" role="group" aria-label="Review period">
         <button aria-pressed={kind === 'week'} onClick={() => setKind('week')}>Week</button>
         <button aria-pressed={kind === 'month'} onClick={() => setKind('month')}>Month</button>
@@ -121,7 +118,7 @@ export function Review({ onOpen, onNavigate }: ModuleProps) { // eslint-disable-
 
   if (!data) {
     return (
-      <div className="page page-lg" aria-busy={!error}>
+      <div className="page" aria-busy={!error}>
         {header}
         {error
           ? <ReviewError message={error} onRetry={() => { void load() }} />
@@ -142,7 +139,7 @@ export function Review({ onOpen, onNavigate }: ModuleProps) { // eslint-disable-
     .filter((c) => c.ok && !topInsights.dismissed.some((d) => d.id === c.id)).slice(0, 3)
 
   return (
-    <div className="page page-lg" aria-busy={stale}>
+    <div className="page" aria-busy={stale}>
       {header}
       {error && <ReviewError message={error} onRetry={() => { void load() }} compact />}
       <div className={stale ? 'opacity-60 transition-opacity' : 'transition-opacity'}>

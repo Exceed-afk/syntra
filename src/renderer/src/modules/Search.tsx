@@ -69,8 +69,8 @@ export function Search({ onOpen, onNavigate }: ModuleProps) {
     : 0
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Search" subtitle="Search your Logbook, trades, savings and tasks." />
+    <div className="page">
+      <PageHeader title="Search" help="Search your Logbook, trades, savings, tasks, notes, content, expenses and focus sessions. Plain words must all match; #tag finds tagged items; 2026-10 finds a month." />
 
       <div className="relative">
         <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
@@ -102,7 +102,7 @@ export function Search({ onOpen, onNavigate }: ModuleProps) {
 
       {results && grandTotal === 0 && (
         <div className="empty mt-6">
-          <p className="text-muted">Nothing matches “{query.trim()}”.</p>
+          <p className="text-muted">Nothing matches “{query.trim()}”</p>
           <p className="mt-1 text-sm text-muted">Try fewer words, or check the spelling.</p>
         </div>
       )}
@@ -140,7 +140,7 @@ export function Search({ onOpen, onNavigate }: ModuleProps) {
                   <span className={`text-sm font-medium tabular-nums ${pnlColor(t.pnl)}`}>{t.pnl === null ? 'Open' : fmtPnl(t.pnl)}</span>
                 </div>
                 <div className="mt-1 text-xs text-muted">
-                  {formatDate(t.date)} · {fmtNum(t.entryPrice)} → {t.exitPrice === null ? 'open' : fmtNum(t.exitPrice)}
+                  {formatDate(t.date)} · {fmtNum(t.entryPrice)} —?{t.exitPrice === null ? 'open' : fmtNum(t.exitPrice)}
                 </div>
                 {t.notes && (
                   <p className="mt-1 line-clamp-2 text-sm text-muted"><Highlight text={makeSnippet(t.notes, terms)} terms={terms} /></p>

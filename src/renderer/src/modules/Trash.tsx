@@ -85,8 +85,8 @@ export function Trash({ onNavigate }: ModuleProps) {
   }
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Trash" subtitle={`${batches.length === 0 ? 'Nothing here.' : `${batches.length} ${batches.length === 1 ? 'delete' : 'deletes'} waiting.`} Batches trashed more than ${purgeDays} days ago are purged automatically.`} />
+    <div className="page">
+      <PageHeader title="Trash" help={`${batches.length === 0 ? 'Nothing here.' : `${batches.length} ${batches.length === 1 ? 'delete' : 'deletes'} waiting.`} Batches trashed more than ${purgeDays} days ago are purged automatically.`} />
 
       {error && <p role="alert" className="text-sm text-neg">{error}</p>}
 

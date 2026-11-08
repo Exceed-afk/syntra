@@ -298,8 +298,8 @@ export function Habits() {
   }
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Habits" subtitle={active.length === 0 ? 'Small things, done regularly.' : dueToday.length === 0 ? 'Nothing is scheduled today.' : `${doneToday} of ${dueToday.length} due today`}>
+    <div className="page">
+      <PageHeader title="Habits" help={active.length === 0 ? 'Small things, done regularly.' : dueToday.length === 0 ? 'Nothing is scheduled today.' : `${doneToday} of ${dueToday.length} due today. Small things, done regularly.`}>
         <button className="btn-primary" onClick={() => setEditingId('new')} title="Ctrl+N">
           <Plus size={16} /> New habit
         </button>

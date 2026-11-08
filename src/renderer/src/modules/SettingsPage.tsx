@@ -71,8 +71,8 @@ export function SettingsPage() {
     `${c.entries} entries, ${c.trades} trades, ${c.goals} savings goals, ${c.transactions} transactions, ${c.habits} habits, ${c.checkins} check-ins`
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Settings" subtitle="Look, modules, templates, quick capture, tags, your data and shortcuts. Everything saves as you go." />
+    <div className="page">
+      <PageHeader title="Settings" help="Look, modules, templates, quick capture, tags, your data and shortcuts. Everything saves as you go." />
 
       <div className="seg mb-5" role="group" aria-label="Settings sections">
         {TABS.map((t) => <button key={t.id} aria-pressed={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}

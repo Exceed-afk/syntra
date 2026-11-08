@@ -27,10 +27,8 @@ export function Insights() {
   }
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Insights" subtitle="Patterns across your tools, from simple averages and correlations. Descriptive, never causal.">
-        <Lightbulb size={20} className="text-accent" />
-      </PageHeader>
+    <div className="page">
+      <PageHeader title="Insights" help="Patterns across your tools, from simple averages and correlations. Descriptive, never causal: treat them as questions to explore, not conclusions." />
       {error && <p role="alert" className="text-sm text-neg">{error}</p>}
 
       {data && (

@@ -87,7 +87,7 @@ export function Tools(_props: ModuleProps) {
 
   return (
     <div className="page">
-      <PageHeader title="Tools" subtitle="Small offline tools that work while everything else is closed." />
+      <PageHeader title="Tools" help="Small offline tools that work while everything else is closed: a loan calculator, a stopwatch, scratchpads and snippets." />
 
       <div className="seg mb-5" role="tablist" aria-label="Tools">
         {ordered.map((t, i) => {

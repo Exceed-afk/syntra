@@ -25,6 +25,7 @@ import type { Task } from '../../../shared/types'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { Dialog, Field, FormMessage } from '../components/EditorBits'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ProgressBar } from '../components/ProgressBar'
 import { errMsg } from '../lib/errors'
 import { today, formatDate, localTime } from '../lib/dates'
@@ -271,8 +272,8 @@ export function Focus({ onNavigate }: ModuleProps) {
     <div className="page">
       <PageHeader
         title="Focus"
-        subtitle={summary
-          ? `${formatDuration(summary.todayFocusSeconds)} focused today · ${summary.completedRoundsToday} ${summary.completedRoundsToday === 1 ? 'round' : 'rounds'} completed`
+        help={summary
+          ? `${formatDuration(summary.todayFocusSeconds)} focused today, ${summary.completedRoundsToday} ${summary.completedRoundsToday === 1 ? 'round' : 'rounds'} completed. Pomodoro timer, time tracking and reports by task and project.`
           : 'Pomodoro timer, time tracking and reports by task and project.'}
       >
         <div className="flex items-center gap-2">
@@ -699,6 +700,8 @@ function FocusSessionsLog({
 }) {
   const [sessions, setSessions] = useState<TimeSession[]>([])
   const [loading, setLoading] = useState(false)
+  // An error is reported in the page, not with a browser alert.
+  const [error, setError] = useState('')
 
   const reload = useCallback(() => {
     setLoading(true)
@@ -716,12 +719,13 @@ function FocusSessionsLog({
       reload()
       onRefresh()
     } catch (e) {
-      alert(errMsg(e))
+      setError(errMsg(e))
     }
   }
 
   return (
     <div className="space-y-4">
+      {error && <p role="alert" className="text-sm text-neg">{error}</p>}
       {sessions.length === 0 && !loading ? (
         <EmptyState
           icon={Clock}
@@ -791,19 +795,25 @@ function FocusProjectsManager({
   onRefresh: () => void
   onOpenModal: (p: Project | 'new') => void
 }) {
+  const [error, setError] = useState('')
+  const [confirming, setConfirming] = useState<Project | null>(null)
   const handleDelete = async (p: Project) => {
-    if (!confirm(`Delete project "${p.name}"?`)) return
+    setConfirming(null)
     try {
       const batchId = await window.api.projects.delete(p.id)
       noteUndoableDelete({ label: `Project ${p.name}`, batchId })
       onRefresh()
     } catch (e) {
-      alert(errMsg(e))
+      setError(errMsg(e))
     }
   }
 
   return (
     <div className="space-y-4">
+      {error && <p role="alert" className="text-sm text-neg">{error}</p>}
+      <ConfirmDialog open={confirming !== null} onClose={() => setConfirming(null)} title="Delete this project?"
+        text={confirming ? `\u201c${confirming.name}\u201d is moved to Trash; its sessions stay.` : undefined}
+        confirmLabel="Delete project" tone="danger" onConfirm={() => { if (confirming) void handleDelete(confirming) }} />
       <div className="flex items-center justify-between">
         <p className="meta">{projects.length} {projects.length === 1 ? 'project' : 'projects'} available.</p>
         <button className="btn-primary" onClick={() => onOpenModal('new')}>
@@ -827,7 +837,7 @@ function FocusProjectsManager({
               <button className="btn-icon" onClick={() => onOpenModal(p)} aria-label="Edit project">
                 <Pencil size={14} />
               </button>
-              <button className="btn-icon hover:text-neg" onClick={() => void handleDelete(p)} aria-label="Delete project">
+              <button className="btn-icon hover:text-neg" onClick={() => setConfirming(p)} aria-label="Delete project">
                 <Trash2 size={14} />
               </button>
             </div>

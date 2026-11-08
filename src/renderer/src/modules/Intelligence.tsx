@@ -95,10 +95,8 @@ export function Intelligence() {
   const aiFeature = FEATURES.find(f => f.key === 'aiAssistant')!
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Intelligence" subtitle="Turn individual features on or off. Everything runs on your computer unless you choose Cloud for the assistant.">
-        <Brain size={20} className="text-accent" />
-      </PageHeader>
+    <div className="page">
+      <PageHeader title="Intelligence" help="Turn individual features on or off. Everything runs on your computer unless you choose Cloud for the assistant." />
 
       {saveError && <p role="alert" className="text-sm text-neg">{saveError}</p>}
 
