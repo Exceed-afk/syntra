@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CalendarDays, Check, CheckSquare, Circle, GripVertical, LayoutGrid, List, Plus, Repeat2, RotateCcw, Search, SkipForward, Trash2, Undo2 } from 'lucide-react'
+import { Check, CheckSquare, ChevronDown, Circle, GripVertical, LayoutGrid, List, Pencil, Pin, Plus, Repeat2, RotateCcw, SkipForward, Trash2, Undo2, X } from 'lucide-react'
 import type { Task, TaskInput, TaskLayout, TaskPriority, TaskSort, TaskView } from '../../../shared/types'
 import type { ModuleProps } from '../lib/navigation'
 import { useSettings, updateSettings } from '../lib/settingsStore'
@@ -11,6 +11,12 @@ import { addTaskDays, applyColumnOrder, filterTasks, taskInputForEdit, taskIsOve
 import { saveProposal } from '../lib/quickAddSave'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
+import { Toolbar, ToolbarStart, ToolbarEnd, ToolbarSearch } from '../components/Toolbar'
+import { Segmented } from '../components/Segmented'
+import { FilterPopover, FilterChips, type ActiveFilterChip } from '../components/FilterPopover'
+import { Popover } from '../components/Popover'
+import { PromptDialog, ConfirmDialog } from '../components/ConfirmDialog'
+import { SidePanel } from '../components/SidePanel'
 import { TaskEditor } from './TaskEditor'
 import { TaskBoard } from './TaskBoard'
 
@@ -47,11 +53,17 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
   const [dragSubtask, setDragSubtask] = useState<{ taskId: number; id: number } | null>(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [undoToast, setUndoToast] = useState<UndoToast | null>(null)
   const [clearTrashConfirm, setClearTrashConfirm] = useState(false)
   const [bulkDate, setBulkDate] = useState('')
+  // The side detail panel: the task whose details are open (null = closed).
+  const [detail, setDetail] = useState<Task | null>(null)
+  // The dialogs that replaced window.prompt / inline confirm rows.
+  const [namingView, setNamingView] = useState(false)
+  const [savedViewsOpen, setSavedViewsOpen] = useState(false)
+  const savedViewsButton = useRef<HTMLButtonElement>(null)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const lastSelected = useRef<number | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   // Both views take their tasks from this one hook, so the filters and the result never differ.
@@ -104,10 +116,10 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
   }, [target, onTargetHandled])
 
   // A selection only means something inside the list it was made in, so changing what is shown starts fresh.
-  useEffect(() => { setSelected(new Set()); setConfirmDelete(false) }, [view, text, priority, project, tag])
+  useEffect(() => { setSelected(new Set()); setConfirmBulkDelete(false) }, [view, text, priority, project, tag])
 
   // The board has no selection toolbar: leaving it drops any selection made in the list.
-  useEffect(() => { if (layout === 'board' && selectMode) { setSelectMode(false); setSelected(new Set()); setConfirmDelete(false) } }, [layout, selectMode])
+  useEffect(() => { if (layout === 'board' && selectMode) { setSelectMode(false); setSelected(new Set()); setConfirmBulkDelete(false) } }, [layout, selectMode])
 
   const add = async (title = quick) => {
     if (!title.trim()) return
@@ -151,7 +163,7 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
   }, [busy, refresh, tasks])
 
   const toggleSelect = useCallback((id: number, shift = false) => {
-    setConfirmDelete(false)
+    setConfirmBulkDelete(false)
     setSelected((prev) => {
       const next = new Set(prev)
       if (shift && lastSelected.current !== null) {
@@ -166,11 +178,11 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
   }, [filtered])
 
   const selectAll = () => {
-    setConfirmDelete(false)
+    setConfirmBulkDelete(false)
     setSelected(allSelected ? new Set() : new Set(filtered.map((t) => t.id)))
   }
 
-  const leaveSelectMode = () => { setSelectMode(false); setSelected(new Set()); setConfirmDelete(false) }
+  const leaveSelectMode = () => { setSelectMode(false); setSelected(new Set()); setConfirmBulkDelete(false) }
 
   const removeTask = async (task: Task) => {
     setTasks((current) => current.filter((item) => item.id !== task.id))
@@ -214,11 +226,13 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
     setBulkBusy(false)
   }
 
-  const saveView = () => {
-    const name = window.prompt('Name this task view')
-    if (!name?.trim()) return
+  // Naming a saved view (the dialog replaces window.prompt). Returns an error
+  // message to keep the dialog open, or null when the view was saved.
+  const saveView = (name: string): string | null => {
+    if (settings.taskSavedViews.some((v) => v.name.toLowerCase() === name.toLowerCase())) return 'A view with that name already exists.'
     const id = `${Date.now()}`
-    updateSettings({ taskSavedViews: [...settings.taskSavedViews, { id, name: name.trim(), filter }] })
+    updateSettings({ taskSavedViews: [...settings.taskSavedViews, { id, name, filter }] })
+    return null
   }
 
   const applySavedView = (savedFilter: typeof filter) => {
@@ -287,7 +301,7 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
         await Promise.all(ids.map((id) => window.api.tasks.restore(id)))
         await refresh()
       } })
-      setSelected(new Set()); setConfirmDelete(false); await refresh()
+      setSelected(new Set()); setConfirmBulkDelete(false); await refresh()
     } catch (e) { setError(errMsg(e)) }
     setBulkBusy(false)
   }
@@ -353,98 +367,122 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
   const title = VIEWS.find((v) => v.id === view)?.label ?? 'Tasks'
   const countForView = (viewId: TaskView): number =>
     viewId === 'trash' ? trashCount : viewId === 'completed' ? completedTasks.length : filterTasks(tasks, { view: viewId }, day, clock).length
+  // The active filters, as removable chips under the toolbar (search has its own field).
+  const activeFilters: ActiveFilterChip[] = [
+    ...(priority ? [{ id: 'priority', label: `Priority: ${priority}`, onRemove: () => filters.setPriority('') }] : []),
+    ...(project ? [{ id: 'project', label: `Project: ${project}`, onRemove: () => filters.setProject('') }] : []),
+    ...(tag ? [{ id: 'tag', label: `Tag: #${tag}`, onRemove: () => filters.setTag('') }] : [])
+  ]
   return (
-    <div className="page page-lg">
-      <PageHeader title="Tasks" subtitle={`${filtered.length}${filtering ? ` of ${displayedTasks.length}` : ''} ${filtered.length === 1 ? 'task' : 'tasks'} · local only`}>
-        {layout === 'list' && view !== 'completed' && (
-          <button className={`btn ${selectMode ? 'border-accent text-accent-fg' : ''}`} aria-pressed={selectMode} onClick={() => (selectMode ? leaveSelectMode() : setSelectMode(true))}>
-            <CheckSquare size={16} /> {selectMode ? 'Done' : 'Select'}
-          </button>
-        )}
-        <button className="btn-primary" onClick={() => setEditing('new')} title="N"><Plus size={16} /> New task</button>
+    <div className="page page-wide">
+      {/* 1. Header: title left, the one primary action right, no subtitle. */}
+      <PageHeader title="Tasks" help="Tasks due today, upcoming and overdue, with filters you can save. Everything is stored on this computer. Shortcuts: N new, / search, J/K move, X toggle, E edit, D due date.">
+        <button className="btn-primary" onClick={() => setEditing('new')} title="N"><Plus size={16} aria-hidden="true" /> New task</button>
       </PageHeader>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-        <div className="seg seg-tabs flex flex-wrap" role="tablist" aria-label="Task views">
-          {VIEWS.map((item) => <button key={item.id} role="tab" aria-selected={view === item.id} onClick={() => filters.setView(item.id)}>
-            {item.label} <span className="ml-1 text-xs text-muted">{countForView(item.id)}</span>
-          </button>)}
-        </div>
-        <div className="seg flex flex-wrap" role="group" aria-label="Task layout">
-          {LAYOUTS.map((item) => {
-            const Icon = item.icon
-            return <button key={item.id} aria-pressed={layout === item.id} onClick={() => updateSettings({ taskLayout: item.id })}><Icon size={14} className="mr-1 inline" />{item.label}</button>
-          })}
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {view === 'completed' && <label className="flex items-center gap-2 text-sm text-muted">
-          Completed on
-          <input type="date" className="field w-40" aria-label="Show tasks completed on date"
-            value={completedDay} onChange={(e) => { if (e.target.value) setCompletedDay(e.target.value) }} />
-        </label>}
-        <div className="relative min-w-[12rem] flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input ref={searchRef} type="search" className="field pl-9" placeholder="Search tasks, notes, projects or #tags" aria-label="Search tasks"
-            value={text} onChange={(e) => filters.setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); filters.setText(''); e.currentTarget.blur() } }} />
-        </div>
-        <select className="field w-36" aria-label="Filter by priority" value={priority} onChange={(e) => filters.setPriority(e.target.value as TaskPriority | '')}>
-          <option value="">All priorities</option><option value="high">High priority</option><option value="medium">Medium priority</option><option value="low">Low priority</option>
-        </select>
-        <select className="field w-40" aria-label="Filter by project" value={project} onChange={(e) => filters.setProject(e.target.value)}>
-          <option value="">All projects</option>{projects.map((p) => <option key={p}>{p}</option>)}
-        </select>
-        <select className="field w-40" aria-label="Filter by tag" value={tag} onChange={(e) => filters.setTag(e.target.value)}>
-          <option value="">All tags</option>{tags.map((t) => <option key={t} value={t}>#{t}</option>)}
-        </select>
-        {filtering && <button className="btn" onClick={filters.clear}>Clear</button>}
-        <select className="field w-40" aria-label="Sort tasks" value={settings.taskSort}
-          onChange={(e) => updateSettings({ taskSort: e.target.value as TaskSort })}>
-          <option value="manual">Manual order</option><option value="due-date">Due date</option><option value="priority">Priority</option>
-        </select>
-        {view !== 'trash' && <button className="btn" onClick={saveView}>Save view</button>}
-      </div>
-      {settings.taskSavedViews.length > 0 && view !== 'trash' && (
-        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Saved task views">
-          {settings.taskSavedViews.map((saved) => <span key={saved.id} className="seg items-center">
-            <button onClick={() => applySavedView(saved.filter)}>{saved.name}</button>
-            <button aria-label={`Remove saved view ${saved.name}`} onClick={() => updateSettings({ taskSavedViews: settings.taskSavedViews.filter((item) => item.id !== saved.id) })}>×</button>
-          </span>)}
-        </div>
+      {error && <p role="alert" className="mb-3 text-sm text-neg">{error}</p>}
+
+      {/* 2. Quick add, directly under the header. */}
+      {view !== 'trash' && (
+        <form className="quick-add" onSubmit={(e) => { e.preventDefault(); void add() }}>
+          <input className="field" value={quick} onChange={(e) => setQuick(e.target.value)}
+            placeholder="Add a task… (try Friday 5pm #tag project:Home high)" aria-label="Quick add task" />
+          <button type="submit" className="btn-primary" aria-label="Add task"><Plus size={16} aria-hidden="true" /></button>
+        </form>
       )}
-      {selectMode && layout === 'list' && view !== 'trash' && view !== 'completed' && (
-        <div className="card card-pad-sm mt-4 flex flex-wrap items-center gap-2" role="region" aria-label="Bulk actions">
+
+      {/* 3. One toolbar row: view tabs left; layout, filters and saved views right; search joins it. */}
+      <Toolbar label="Task toolbar">
+        <ToolbarStart>
+          <Segmented label="Task views" value={view} kind="tabs"
+            options={VIEWS.map((item) => ({ id: item.id, label: item.label, count: countForView(item.id) }))}
+            onChange={(next) => filters.setView(next)} />
+        </ToolbarStart>
+        <ToolbarEnd>
+          {view === 'completed' && (
+            <input type="date" className="field field-sm" aria-label="Show tasks completed on date"
+              value={completedDay} onChange={(e) => { if (e.target.value) setCompletedDay(e.target.value) }} />
+          )}
+          <ToolbarSearch value={text} onChange={(v) => filters.setText(v)} placeholder="Search tasks" label="Search tasks, notes, projects or #tags" inputRef={searchRef} />
+          {layout === 'list' && view !== 'completed' && view !== 'trash' && (
+            <button type="button" className={`btn btn-sm ${selectMode ? 'border-accent text-accent-fg' : ''}`} aria-pressed={selectMode}
+              onClick={() => (selectMode ? leaveSelectMode() : setSelectMode(true))}>
+              <CheckSquare size={14} aria-hidden="true" /> {selectMode ? 'Done' : 'Select'}
+            </button>
+          )}
+          <Segmented label="Task layout" kind="group" size="sm" value={layout}
+            options={LAYOUTS.map((item) => ({ id: item.id, label: item.label, icon: item.icon }))}
+            onChange={(next) => updateSettings({ taskLayout: next })} />
+          <FilterPopover
+            activeCount={activeFilters.length}
+            onClearAll={filters.clear}
+            filters={[
+              { id: 'priority', label: 'Priority', value: priority, allLabel: 'All priorities', onChange: (v) => filters.setPriority(v as TaskPriority | ''),
+                options: [{ value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }] },
+              { id: 'project', label: 'Project', value: project, allLabel: 'All projects', onChange: filters.setProject,
+                options: projects.map((p) => ({ value: p, label: p })) },
+              { id: 'tag', label: 'Tag', value: tag, allLabel: 'All tags', onChange: filters.setTag,
+                options: tags.map((t) => ({ value: t, label: `#${t}` })) }
+            ]}
+          >
+            <label className="block text-xs text-muted">Sort
+              <select className="field mt-1" aria-label="Sort tasks" value={settings.taskSort}
+                onChange={(e) => updateSettings({ taskSort: e.target.value as TaskSort })}>
+                <option value="manual">Manual order</option><option value="due-date">Due date</option><option value="priority">Priority</option>
+              </select>
+            </label>
+          </FilterPopover>
+          {view !== 'trash' && (
+            <span className="toolbar-popover-anchor">
+              <button ref={savedViewsButton} type="button" className="btn btn-sm" aria-haspopup="dialog" aria-expanded={savedViewsOpen}
+                onClick={() => setSavedViewsOpen((o) => !o)}>
+                Saved views <ChevronDown size={13} aria-hidden="true" />
+              </button>
+              <Popover open={savedViewsOpen} onClose={() => setSavedViewsOpen(false)} anchor={savedViewsButton} label="Saved task views" align="end" className="popover-filters">
+                {settings.taskSavedViews.length === 0 ? (
+                  <p className="text-xs text-muted">No saved views yet. Set a filter, then save it.</p>
+                ) : (
+                  <ul className="flex flex-col gap-1">
+                    {settings.taskSavedViews.map((saved) => (
+                      <li key={saved.id} className="flex items-center gap-1">
+                        <button type="button" className="saved-view-item" onClick={() => { applySavedView(saved.filter); setSavedViewsOpen(false) }}>{saved.name}</button>
+                        <button type="button" className="btn-icon" aria-label={`Remove saved view ${saved.name}`}
+                          onClick={() => updateSettings({ taskSavedViews: settings.taskSavedViews.filter((item) => item.id !== saved.id) })}><X size={14} aria-hidden="true" /></button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="popover-actions">
+                  <button type="button" className="btn btn-sm" onClick={() => { setSavedViewsOpen(false); setNamingView(true) }}>
+                    <Pin size={13} aria-hidden="true" /> Save current view…
+                  </button>
+                </div>
+              </Popover>
+            </span>
+          )}
+        </ToolbarEnd>
+      </Toolbar>
+
+      {/* 4. Active filters as removable chips under the toolbar. */}
+      <FilterChips chips={activeFilters} onClearAll={filters.clear} />
+
+      {/* 6. Bulk actions: only while something is selected. */}
+      {selectMode && selected.size > 0 && layout === 'list' && view !== 'trash' && view !== 'completed' && (
+        <div className="bulk-bar" role="region" aria-label="Bulk actions">
           <span className="text-sm" aria-live="polite">{selected.size} selected</span>
           <button className="btn btn-sm" onClick={selectAll} disabled={filtered.length === 0}>{allSelected ? 'Select none' : `Select all ${filtered.length}`}</button>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {confirmDelete ? (
-              <>
-                <span className="text-xs text-neg">Delete {selected.size} {selected.size === 1 ? 'task' : 'tasks'}?</span>
-                <button className="btn-danger btn-sm" onClick={() => bulk('delete')} disabled={bulkBusy}>Delete</button>
-                <button className="btn btn-sm" onClick={() => setConfirmDelete(false)} disabled={bulkBusy}>Keep</button>
-              </>
-            ) : (
-              <>
-                <button className="btn btn-sm" onClick={() => bulk('done')} disabled={selected.size === 0 || bulkBusy}><Check size={14} /> Mark done</button>
-                <button className="btn btn-sm" onClick={() => bulk('todo')} disabled={selected.size === 0 || bulkBusy}><RotateCcw size={14} /> Reopen</button>
-                <button className="btn btn-sm" onClick={() => void reschedule(day)} disabled={selected.size === 0 || bulkBusy}>Today</button>
-                <button className="btn btn-sm" onClick={() => void reschedule(addTaskDays(day, 1), '09:00')} disabled={selected.size === 0 || bulkBusy}>Snooze 1 day</button>
-                <button className="btn btn-sm" onClick={() => void reschedule(addTaskDays(day, 7), '09:00')} disabled={selected.size === 0 || bulkBusy}>Next week</button>
-                <input type="date" className="field w-36" aria-label="Reschedule selected tasks to date" value={bulkDate}
-                  onChange={(e) => { setBulkDate(e.target.value); if (e.target.value) void reschedule(e.target.value) }} />
-                <button className="btn-icon hover:text-neg" aria-label={`Delete ${selected.size} selected ${selected.size === 1 ? 'task' : 'tasks'}`}
-                  onClick={() => setConfirmDelete(true)} disabled={selected.size === 0 || bulkBusy}><Trash2 size={15} /></button>
-              </>
-            )}
+          <div className="bulk-bar-actions">
+            <button className="btn btn-sm" onClick={() => bulk('done')} disabled={bulkBusy}><Check size={14} aria-hidden="true" /> Mark done</button>
+            <button className="btn btn-sm" onClick={() => bulk('todo')} disabled={bulkBusy}><RotateCcw size={14} aria-hidden="true" /> Reopen</button>
+            <button className="btn btn-sm" onClick={() => void reschedule(day)} disabled={bulkBusy}>Today</button>
+            <button className="btn btn-sm" onClick={() => void reschedule(addTaskDays(day, 1), '09:00')} disabled={bulkBusy}>Snooze 1 day</button>
+            <button className="btn btn-sm" onClick={() => void reschedule(addTaskDays(day, 7), '09:00')} disabled={bulkBusy}>Next week</button>
+            <input type="date" className="field field-sm" aria-label="Reschedule selected tasks to date" value={bulkDate}
+              onChange={(e) => { setBulkDate(e.target.value); if (e.target.value) void reschedule(e.target.value) }} />
+            <button className="btn-icon hover:text-neg" aria-label={`Delete ${selected.size} selected ${selected.size === 1 ? 'task' : 'tasks'}`}
+              onClick={() => setConfirmBulkDelete(true)} disabled={bulkBusy}><Trash2 size={15} aria-hidden="true" /></button>
           </div>
         </div>
       )}
-      {view !== 'trash' && <form className="card card-pad-sm mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); void add() }}>
-        <input className="field" value={quick} onChange={(e) => setQuick(e.target.value)}
-          placeholder="Add a task… (try Friday 5pm #tag project:Home high)" aria-label="Quick add task" />
-        <button type="submit" className="btn-primary" aria-label="Add task"><Plus size={16} /></button>
-      </form>}
-      {error && <p role="alert" className="mt-3 text-sm text-neg">{error}</p>}
       {view === 'trash' && (
         <div className="mt-4 flex items-center justify-between">
           <p className="text-sm text-muted">{trashCount} items in Trash</p>
@@ -490,7 +528,7 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
               <article key={task.id} data-task-id={task.id} data-task-row="true" tabIndex={0} onDoubleClick={() => { if (!selectMode) setEditing(task) }}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !selectMode) setEditing(task) }}
                 draggable={settings.taskSort === 'manual' && view !== 'trash' && !selectMode} onDragStart={() => setDragId(task.id)} onDragOver={(e) => e.preventDefault()} onDrop={() => reorder(task.id)}
-                className={`card card-pad-sm flex flex-wrap items-center gap-3 ${done ? 'opacity-70' : ''} ${picked ? 'border-accent ring-1 ring-accent' : overdue ? 'border-neg/60' : ''}`}>
+                className={`card card-pad-sm task-row ${done ? 'opacity-70' : ''} ${picked ? 'border-accent ring-1 ring-accent' : overdue ? 'border-neg/60' : ''}`}>
                 {view === 'trash'
                   ? <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.title}</span>
                   : selectMode
@@ -500,34 +538,38 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
                   aria-label={`${done ? 'Mark not done' : 'Mark done'}: ${task.title}`} aria-pressed={done} disabled={busy === task.id} onClick={() => void toggle(task.id)}>
                   {done ? <Check size={15} /> : <Circle size={14} className="text-transparent" />}
                 </button>}
-                {view !== 'trash' && <button type="button" onClick={() => (selectMode ? toggleSelect(task.id) : setEditing(task))} className="min-w-0 flex-1 text-left">
+                {view !== 'trash' && <button type="button" onClick={() => (selectMode ? toggleSelect(task.id) : setDetail(task))} className="task-title text-left">
                   <span className={`block truncate text-sm font-medium ${done ? 'text-muted line-through' : ''}`}>{task.title}</span>
-                  <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                    <span className={`badge badge-${task.priority === 'high' ? 'neg' : 'muted'}`}>{task.priority}</span>
-                    {due && <span className={`flex items-center gap-1 ${overdue ? 'text-neg font-medium' : ''}`}><CalendarDays size={12} />{overdue ? 'Overdue · ' : ''}{formatDate(due)}{task.dueTime ? ` · ${task.dueTime}` : ''}</span>}
-                    {task.project && <span>{task.project}</span>}
-                    {task.tags.map((t) => <span key={t}>#{t}</span>)}
+                  {/* 5. A row shows only what is needed: due date as plain text, priority badge, tags. */}
+                  <span className="task-row-meta">
+                    {due && <span className={`task-row-date ${overdue ? 'text-neg font-medium' : ''}`}>{overdue ? 'Overdue · ' : ''}{formatDate(due)}{task.dueTime ? ` · ${task.dueTime}` : ''}</span>}
+                    <span className={`badge badge-${task.priority === 'high' ? 'neg' : task.priority === 'low' ? 'muted' : 'open'}`}>{task.priority}</span>
+                    {task.tags.map((t) => <span key={t} className="task-row-tag">#{t}</span>)}
                     {task.recurrenceRule && <span title={`Repeats ${task.recurrenceRule.frequency}`}><Repeat2 size={12} aria-label="Recurring" /></span>}
-                    {task.subtasks.length > 0 && <span>{task.subtasks.filter((s) => s.done).length}/{task.subtasks.length} checklist</span>}
+                    {task.subtasks.length > 0 && <span className="task-row-sub">{task.subtasks.filter((s) => s.done).length}/{task.subtasks.length} checklist</span>}
                   </span>
                 </button>}
                 {view === 'trash' ? <>
                   <button className="btn btn-sm" onClick={() => { void window.api.tasks.restore(task.id).then(refresh).catch((e) => setError(errMsg(e))) }}>Restore</button>
                   <button className="btn-danger btn-sm" onClick={() => void deleteForever(task.id)}>Delete forever</button>
-                </> : !selectMode && <div className="flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <input type="date" className="field w-36" aria-label={`Due date for ${task.title}`} value={task.recurrenceNext ?? task.dueDate ?? ''}
+                </> : !selectMode && <div className="task-row-actions" onClick={(e) => e.stopPropagation()}>
+                  {/* The editors appear on hover / keyboard focus, or in the side panel. The date input
+                      keeps its accessible name and is the target of the D shortcut, so it stays mounted. */}
+                  <input type="date" className="field field-sm" aria-label={`Due date for ${task.title}`} value={task.recurrenceNext ?? task.dueDate ?? ''}
                     onChange={(e) => void updateInline(task, { dueDate: e.target.value || null })} />
-                  <select className="field w-28" aria-label={`Priority for ${task.title}`} value={task.priority}
+                  <select className="field field-sm" aria-label={`Priority for ${task.title}`} value={task.priority}
                     onChange={(e) => void updateInline(task, { priority: e.target.value as TaskPriority })}>
                     <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
                   </select>
-                  <input className="field w-28" aria-label={`Project for ${task.title}`} placeholder="Project" defaultValue={task.project ?? ''}
+                  <input className="field field-sm" aria-label={`Project for ${task.title}`} placeholder="Project" defaultValue={task.project ?? ''}
                     onBlur={(e) => { if (e.target.value !== (task.project ?? '')) void updateInline(task, { project: e.target.value || null }) }} />
+                  <button className="btn-icon" aria-label={`Open details for ${task.title}`} title="Details"
+                    onClick={() => setDetail(task)}><ChevronDown size={15} aria-hidden="true" /></button>
                   {task.recurrenceRule && <button className="btn-icon" aria-label={`Skip next occurrence of ${task.title}`} title="Skip next occurrence"
-                    onClick={() => void skipOccurrence(task)}><SkipForward size={15} /></button>}
-                  <button className="btn-icon hover:text-neg" aria-label={`Move ${task.title} to Trash`} onClick={() => void removeTask(task)}><Trash2 size={15} /></button>
+                    onClick={() => void skipOccurrence(task)}><SkipForward size={15} aria-hidden="true" /></button>}
+                  <button className="btn-icon hover:text-neg" aria-label={`Move ${task.title} to Trash`} onClick={() => void removeTask(task)}><Trash2 size={15} aria-hidden="true" /></button>
                 </div>}
-                {view !== 'trash' && task.subtasks.length > 0 && <div className="flex basis-full flex-wrap gap-2 border-t border-line pt-2">
+                {view !== 'trash' && task.subtasks.length > 0 && <div className="task-row-subtasks">
                   {task.subtasks.map((subtask) => <span key={subtask.id} draggable
                     onDragStart={() => setDragSubtask({ taskId: task.id, id: subtask.id })}
                     onDragOver={(e) => e.preventDefault()} onDrop={() => void reorderSubtask(task, subtask.id)}
@@ -555,9 +597,73 @@ export function Tasks({ target, onTargetHandled }: ModuleProps) {
       <p className="mt-4 text-xs text-muted">
         Shortcuts: <kbd className="kbd">N</kbd> new task · <kbd className="kbd">/</kbd> search
         {layout === 'list'
-          ? <> · <kbd className="kbd">Space</kbd> toggle focused task · drag rows to reorder.</>
+          ? <> · <kbd className="kbd">J</kbd>/<kbd className="kbd">K</kbd> move · <kbd className="kbd">X</kbd> toggle · <kbd className="kbd">E</kbd> edit · <kbd className="kbd">D</kbd> due date · <kbd className="kbd">Space</kbd> toggle focused task · drag rows to reorder.</>
           : <> · <kbd className="kbd">Enter</kbd> edit a card · <kbd className="kbd">Alt</kbd> + <kbd className="kbd">←</kbd>/<kbd className="kbd">→</kbd> move a card · drag cards to move or reorder.</>}
       </p>
+
+      {/* 5. The side detail panel: the row's own date, priority and project editors. */}
+      <SidePanel open={detail !== null} onClose={() => setDetail(null)} title={detail?.title ?? 'Task'} width="narrow"
+        footer={detail && view !== 'trash' ? (
+          <>
+            <button className="btn" onClick={() => { const task = detail; setDetail(null); setEditing(task) }}><Pencil size={14} aria-hidden="true" /> Edit task</button>
+            <button className="btn-danger" onClick={() => { void removeTask(detail); setDetail(null) }}><Trash2 size={14} aria-hidden="true" /> Move to Trash</button>
+          </>
+        ) : undefined}>
+        {detail && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className={`grid h-6 w-6 place-items-center rounded-md border ${detail.status === 'done' ? 'border-accent bg-accent text-on-accent' : 'border-line hover:border-accent'}`}
+                aria-label={`${detail.status === 'done' ? 'Mark not done' : 'Mark done'}: ${detail.title}`} aria-pressed={detail.status === 'done'}
+                disabled={busy === detail.id} onClick={() => void toggle(detail.id)}>
+                {detail.status === 'done' && <Check size={15} aria-hidden="true" />}
+              </button>
+              <span className="meta">{detail.status === 'done' ? 'Done' : detail.status === 'in-progress' ? 'In progress' : 'To do'}</span>
+              {detail.recurrenceRule && <span className="meta">Repeats {detail.recurrenceRule.frequency}</span>}
+            </div>
+            <label className="block text-xs text-muted">Due date
+              <input type="date" className="field mt-1" value={detail.recurrenceNext ?? detail.dueDate ?? ''}
+                onChange={(e) => { const next = { ...detail, dueDate: e.target.value || null }; setDetail(next); void updateInline(detail, { dueDate: e.target.value || null }) }} />
+            </label>
+            <label className="block text-xs text-muted">Priority
+              <select className="field mt-1" value={detail.priority}
+                onChange={(e) => { const next = { ...detail, priority: e.target.value as TaskPriority }; setDetail(next); void updateInline(detail, { priority: e.target.value as TaskPriority }) }}>
+                <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+              </select>
+            </label>
+            <label className="block text-xs text-muted">Project
+              <input className="field mt-1" key={`project-${detail.id}`} placeholder="Project" defaultValue={detail.project ?? ''}
+                onBlur={(e) => { if (e.target.value !== (detail.project ?? '')) void updateInline(detail, { project: e.target.value || null }) }} />
+            </label>
+            {detail.notes && <p className="whitespace-pre-line text-sm leading-relaxed">{detail.notes}</p>}
+            {detail.tags.length > 0 && <p className="flex flex-wrap gap-1.5">{detail.tags.map((t) => <span key={t} className="task-row-tag">#{t}</span>)}</p>}
+            {detail.subtasks.length > 0 && (
+              <section>
+                <h3 className="section-title">Checklist</h3>
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {detail.subtasks.map((subtask) => (
+                    <li key={subtask.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={subtask.done} aria-label={`Complete ${subtask.title}`}
+                        onChange={(e) => void toggleSubtask(detail, subtask.id, e.target.checked)} />
+                      <span className={subtask.done ? 'text-muted line-through' : ''}>{subtask.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
+        )}
+      </SidePanel>
+
+      {/* 7. Saved-view naming uses the shared prompt dialog. */}
+      <PromptDialog open={namingView} onClose={() => setNamingView(false)} title="Save this view" label="Name"
+        placeholder="e.g. High priority work" submitLabel="Save view" onSubmit={saveView} />
+      <ConfirmDialog open={confirmBulkDelete} onClose={() => setConfirmBulkDelete(false)} title={`Delete ${selected.size} ${selected.size === 1 ? 'task' : 'tasks'}?`}
+        text="They move to Trash, where they can be restored." confirmLabel="Move to Trash" tone="danger" busy={bulkBusy}
+        onConfirm={() => { setConfirmBulkDelete(false); void bulk('delete') }} />
+      <ConfirmDialog open={clearTrashConfirm} onClose={() => setClearTrashConfirm(false)} title="Empty the Trash?"
+        text="Every trashed task is deleted permanently. This cannot be undone." confirmLabel="Delete forever" tone="danger" busy={bulkBusy}
+        onConfirm={() => void clearTrash()} />
+
       {editing && <TaskEditor key={editing === 'new' ? 'new' : editing.id} task={editing === 'new' ? null : editing}
         onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void refresh() }} />}
     </div>
