@@ -157,7 +157,7 @@ Every page is built from the pieces in `src/renderer/src/components/`. The rules
 - **Audio chime**: zero-dependency chime using HTML5 Web Audio API synthesizer.
 
 ## Notes (0.16.0)
-**Notes** (under Notes in the sidebar) is for undated material — ideas, reference, meeting notes, checklists — while the Logbook stays your dated journal.
+**Notes** (under Journal in the sidebar) is for undated material — ideas, reference, meeting notes, checklists — while the Logbook stays your dated journal.
 
 - **Markdown editor** with a live split preview, autosave after a pause, a word count, and a read/write toggle (`Ctrl+E`).
 - **Tags, pinning and archive.** Tags can be typed in the editor or written in the text as `#tag`; pinned notes sort first and the archive hides notes without deleting them.
@@ -312,7 +312,8 @@ A small always-on-top window for logging something without opening the app: a **
 - `Ctrl+B` collapses the sidebar to icons, or expands it again
 
 ## Sidebar
-- **Groups**: tools are grouped by category (Money, Productivity, Notes, Utilities, ...). Click a group heading to fold or unfold it. A folded group that holds the page you are on shows a small accent dot.
+- **Groups**: the start pages sit under **Overview** (a flat, always-open group), then tools are grouped by category (Money, Productivity, Journal, Utilities, ...). Click a group heading to fold or unfold it. A folded group that holds the page you are on shows a small accent dot.
+- **Scrolling**: the list scrolls when the window is short (with a thin themed scrollbar that takes no room from the labels); the Dark mode / Settings footer stays fixed at the bottom.
 - **Pinned**: hover a tool (or tab to it) and use the pin button to put it in a "Pinned" section at the top; pinned tools are listed there only, in the order you pinned them. Unpin the same way. Settings is always at the bottom and is not pinnable.
 - **Icons only**: the button at the top of the sidebar, or `Ctrl+B`, shrinks it to icons. Hover or tab to an icon to see its name and shortcut. In icons-only mode every group is open so every icon is reachable. (Pinning is done in the full sidebar.) It also switches to icons by itself in a narrow window.
 - **Pin / unpin never loses your place**: the tool moves to the Pinned section (or back to its category), a folded section it is moving into is opened, and keyboard focus follows it to its pin button.

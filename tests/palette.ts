@@ -10,7 +10,7 @@ const test = (name: string, fn: () => void) => { fn(); n++; console.log('ok  ', 
 const entry = (id: string, title: string, group: string, keywords: string[] = []): PaletteEntry => ({ id, title, group, keywords })
 const entries = [
   entry('tool:dashboard', 'Dashboard', 'Overview', ['home', 'summary']),
-  entry('tool:logbook', 'Logbook', 'Notes', ['journal', 'diary']),
+  entry('tool:logbook', 'Logbook', 'Journal', ['journal', 'diary']),
   entry('tool:trades', 'Trades', 'Money', ['trade tracker', 'p&l', 'gold']),
   entry('tool:savings', 'Savings', 'Money', ['goals', 'money']),
   entry('tool:habits', 'Habits', 'Productivity', ['streak']),

@@ -13,7 +13,7 @@ export const TOOL_CATEGORIES = [
   { id: 'money', name: 'Money', flat: false },
   { id: 'health', name: 'Health', flat: false },
   { id: 'productivity', name: 'Productivity', flat: false },
-  { id: 'notes', name: 'Notes', flat: false },
+  { id: 'notes', name: 'Journal', flat: false },
   { id: 'utilities', name: 'Utilities', flat: false }
 ] as const
 export type ToolCategory = (typeof TOOL_CATEGORIES)[number]['id']

@@ -154,7 +154,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
 
   /* ---- Sidebar (components/Sidebar.tsx) ---- */
   .sb {
-    display: flex; flex-direction: column; flex-shrink: 0; width: 14rem; gap: .25rem; padding: .75rem; overflow: hidden;
+    display: flex; flex-direction: column; flex-shrink: 0; width: 14.5rem; gap: .25rem; padding: .75rem; overflow: hidden;
     background: rgb(var(--panel)); border-right: 1px solid rgb(var(--line)); transition: width .18s ease;
   }
   .sb[data-collapsed='true'] { width: 4.25rem; }
@@ -169,7 +169,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .sb-nav { display: flex; flex: 1; flex-direction: column; gap: .125rem; min-height: 0; margin: 0 -.75rem; padding: 0 .75rem; overflow-x: hidden; overflow-y: auto; }
   .sb-foot { display: flex; flex-direction: column; gap: .125rem; margin-top: .25rem; padding-top: .5rem; border-top: 1px solid rgb(var(--line)); }
   .sb-item {
-    position: relative; display: flex; flex: none; align-items: center; gap: .75rem; width: 100%;
+    position: relative; display: flex; flex: none; align-items: center; gap: .5rem; width: 100%;
     padding: calc(.5rem * var(--d)) .75rem; border-radius: calc(.75rem * var(--rs));
     font-size: .875rem; color: rgb(var(--muted)); text-align: left; cursor: pointer;
     transition: background-color .15s, color .15s, transform .08s;
@@ -195,6 +195,13 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .sb[data-collapsed='true'] :is(.sb-label, .sb-kbd, .sb-title) { display: none; }
   /* A scrollbar would take room from the 2.75rem icons and push them off-centre once the list is long; the rail still scrolls (wheel, keys, focus). */
   .sb[data-collapsed='true'] .sb-nav { scrollbar-width: none; }
+  /* A thin, quiet scrollbar for the full sidebar list: `thin` keeps it an overlay-style sliver that does not take
+     layout width from the labels; the colours come from the theme so every palette and both styles follow. */
+  .sb-nav { scrollbar-width: thin; scrollbar-color: rgb(var(--fg) / .25) transparent; }
+  .sb-nav::-webkit-scrollbar { width: 6px; }
+  .sb-nav::-webkit-scrollbar-thumb { border-radius: 999px; background: rgb(var(--fg) / .25); }
+  .sb-nav::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg) / .4); }
+  .sb-nav::-webkit-scrollbar-track { background: transparent; }
 
   /* Classic minimal: the sidebar sits flush with the page, and the active page is shown by the edge marker and weight only. */
   [data-style='minimal'] .sb { background: rgb(var(--bg)); }

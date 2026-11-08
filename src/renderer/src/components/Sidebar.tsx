@@ -82,6 +82,8 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS }: { active: 
     return (
       <div key={t.id} className="sb-row" data-pinnable={pinnable && !collapsed}>
         <button className="sb-item" onClick={() => onSelect(t.id)}
+          // In the full sidebar the native tooltip is the fallback for a name the width still has to truncate;
+          // the icons-only rail shows its own tip instead (see tipHandlers).
           title={collapsed ? undefined : hint ? `${t.name} (${hint})` : t.name}
           aria-label={collapsed ? t.name : undefined} aria-current={t.id === active ? 'page' : undefined}
           aria-keyshortcuts={t.shortcut ? `Control+${t.shortcut}` : undefined}
@@ -135,10 +137,10 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS }: { active: 
         </button>
       </div>
 
-      <div className="sb-nav" onScroll={() => setTip(null)}>
-        {layout.pinned.length > 0 && group(PINNED_GROUP, 'Pinned', layout.pinned)}
-        {layout.groups.map((g) => group(g.id, g.name, g.tools, g.flat))}
-      </div>
+        <div className="sb-nav" onScroll={() => setTip(null)} tabIndex={-1}>
+          {layout.pinned.length > 0 && group(PINNED_GROUP, 'Pinned', layout.pinned)}
+          {layout.groups.map((g) => group(g.id, g.name, g.tools, g.flat))}
+        </div>
 
       <div className="sb-foot">
         <button className="sb-item" onClick={toggleTheme} title={collapsed ? undefined : themeLabel} aria-label={themeLabel} {...tipHandlers(dark ? 'Light mode' : 'Dark mode', null)}>
