@@ -217,28 +217,87 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   }
 
   /* ================= Calculator module =================
-     Header is two rows (title + subtitle, then the toolbar). Nothing overlaps and nothing is
-     absolutely positioned: the toolbar is a wrapping flex row that scrolls its mode tabs when
-     the window is too narrow for every option. */
+     Header: title on the left, History / Help icon buttons on the right, then ONE row of mode
+     tabs with an underline for the active one. The tab row scrolls sideways when the window is
+     too narrow instead of wrapping. Nothing is absolutely positioned, so nothing can overlap. */
   .calculator-module { box-sizing: border-box; overflow-x: clip; }
-  .calc-head { display: flex; flex-direction: column; gap: calc(.75rem * var(--d)); min-width: 0; margin-bottom: calc(1.5rem * var(--d)); }
-  .calc-head-title { min-width: 0; }
-  .calc-head-title .page-sub { max-width: 60ch; }
-  /* The toolbar has two parts: the mode strip and the tools. The tools sit on the right of the
-     strip when both fit on one row; otherwise the tools take the row below and stay right-aligned.
-     Nothing is positioned, so nothing can overlap. */
-  .calc-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem .75rem; min-width: 0; }
-  .calc-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .375rem; min-width: 0; margin-left: auto; }
-  /* The strip is one evenly-wrapping group: every mode stays visible and the last row is never a
-     single orphaned tab, because the group takes the full width it is given. */
-  .calc-modes { flex: 1 1 26rem; max-width: 100%; min-width: 0; flex-wrap: wrap; justify-content: flex-start; }
-  .calc-modes > button { flex: 0 1 auto; white-space: nowrap; }
+  .calc-head { display: flex; flex-direction: column; gap: calc(.5rem * var(--d)); min-width: 0; margin-bottom: calc(1rem * var(--d)); }
+  .calc-head-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-width: 0; }
+  .calc-head-actions { display: flex; align-items: center; gap: .25rem; flex: 0 0 auto; }
+  /* The icon buttons carry a small count badge; the badge is decorative (the count is also in the tooltip). */
+  .calc-head-icon-btn { position: relative; }
+  .calc-head-badge {
+    position: absolute; top: -.125rem; right: -.125rem; min-width: 1rem; height: 1rem; padding: 0 .25rem;
+    display: grid; place-items: center; border-radius: 999px; background: rgb(var(--accent-fill, var(--accent)));
+    color: rgb(var(--on-accent)); font-size: .625rem; font-weight: 600; line-height: 1; pointer-events: none;
+  }
+  /* One row of tabs, underline for the active one. No pill box, no wrapping: the row scrolls. */
+  .calc-modes {
+    display: flex; flex-wrap: nowrap; align-items: stretch; gap: .125rem; min-width: 0; max-width: 100%;
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; border-bottom: 1px solid rgb(var(--line));
+  }
+  .calc-modes > button {
+    flex: 0 0 auto; white-space: nowrap; padding: .5rem .75rem; margin-bottom: -1px;
+    border-bottom: 2px solid transparent; border-radius: 0;
+    font-size: .8125rem; font-weight: 500; color: rgb(var(--muted)); cursor: pointer;
+    transition: color .15s, border-color .15s, background-color .15s;
+  }
+  .calc-modes > button:hover { color: rgb(var(--fg)); background: rgb(var(--fg) / .04); }
+  .calc-modes > button[aria-selected='true'], .calc-modes > button[aria-pressed='true'] {
+    color: rgb(var(--accent-fg)); border-bottom-color: rgb(var(--accent-fg)); font-weight: 600;
+  }
   .calc-select { width: auto; max-width: 100%; padding: calc(.25rem * var(--d)) calc(.5rem * var(--d)); font-size: .8125rem; border-radius: calc(.5rem * var(--rs)); }
   .calc-ico { width: 1rem; height: 1rem; flex: 0 0 auto; }
-  .calc-btn-label-short { display: none; }
-  @media (max-width: 759px) {
-    .calc-btn-label { display: none; }
-    .calc-btn-label-short { display: inline; }
+
+  /* ---- Display card: controls row, then the expression (small, right) and the result (large) ---- */
+  .calc-display-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin-bottom: .5rem; }
+  .calc-display-tools .calc-select { margin-left: auto; }
+  /* Inv is visibly active when on: accent fill, not just a pressed state. */
+  .calc-inv-on { --btn-fg: rgb(var(--on-accent)); background: rgb(var(--accent-fill, var(--accent))); border-color: transparent; font-weight: 600; }
+  .calc-inv-on:hover:not(:disabled) { filter: brightness(1.1); }
+  .calc-display-result { display: flex; flex-direction: column; align-items: flex-end; gap: .125rem; min-height: 3.5rem; margin-top: .5rem; }
+  .calc-display-expr { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8125rem; color: rgb(var(--muted)); text-align: right; }
+  .calc-display-value-row { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; max-width: 100%; min-width: 0; }
+  .calc-display-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 2rem; line-height: 2.25rem; font-weight: 700; letter-spacing: -.02em; color: rgb(var(--fg)); text-align: right; overflow-wrap: anywhere; }
+  .calc-display-actions { display: flex; align-items: center; gap: .25rem; flex: 0 0 auto; }
+  .calc-display-placeholder { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 2rem; line-height: 2.25rem; font-weight: 700; color: rgb(var(--muted) / .45); }
+
+  /* ---- Keypad: one grid system ----
+     Scientific: function block (3 x 5) beside the number block (4 x 5) in a 3fr / 4fr split.
+     Basic: the number block alone. Both blocks share the same key height and gap.
+     NOTE: the grid rules live OUTSIDE @layer components (see the block after this layer) —
+     Tailwind's `grid` utility is in the utilities layer and would otherwise win. */
+  /* One key style for both blocks: same height, same radius, same type. */
+  .calc-key {
+    display: flex; align-items: center; justify-content: center; min-width: 0; height: 2.75rem;
+    padding: 0 .25rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs));
+    background: rgb(var(--card)); color: rgb(var(--fg)); font-size: 1rem; font-weight: 600; line-height: 1;
+    cursor: pointer; user-select: none; transition: background-color .15s, border-color .15s, color .15s, transform .08s;
+  }
+  .calc-key:hover { background: rgb(var(--fg) / .06); border-color: rgb(var(--fg) / .22); }
+  .calc-key:active { background: rgb(var(--fg) / .12); transform: translateY(1px) scale(.98); }
+  /* Function keys are a touch quieter than the digits. */
+  .calc-keypad-fn .calc-key { font-size: .9375rem; font-weight: 500; }
+  /* Operators: a soft success tint (the gain colour at low opacity), text in the gain colour. */
+  .calc-key-op { background: rgb(var(--pos) / .1); border-color: rgb(var(--pos) / .28); color: rgb(var(--pos)); }
+  .calc-key-op:hover { background: rgb(var(--pos) / .16); border-color: rgb(var(--pos) / .4); }
+  .calc-key-op:active { background: rgb(var(--pos) / .22); }
+  /* Equals: solid success colour. */
+  /* Equals: the accent fill of the primary buttons, with the contrast-adjusted text colour on top
+     (--on-accent is the same token .btn-primary uses, so it follows every theme). */
+  .calc-key-equals { background: rgb(var(--accent-fill, var(--accent))); border-color: transparent; color: rgb(var(--on-accent)); font-weight: 700; }
+  .calc-key-equals:hover { filter: brightness(1.1); }
+  .calc-key-equals:active { filter: brightness(.92); }
+  /* The inline backspace icon inherits the key's text colour (currentColor). */
+  .calc-key-icon { display: block; width: 1.25rem; height: 1.25rem; }
+  /* Clear: danger colour as TEXT, not a filled block. */
+  .calc-key-clear { color: rgb(var(--neg)); border-color: rgb(var(--neg) / .3); background: transparent; }
+  .calc-key-clear:hover { background: rgb(var(--neg) / .08); border-color: rgb(var(--neg) / .45); }
+  /* Inv-active function keys read as "this key is now the inverse". */
+  .calc-key-inv { color: rgb(var(--accent-fg)); border-color: rgb(var(--accent-fg) / .35); }
+  /* Narrow windows: the function block stacks above the number block (still 3 columns). */
+  @media (max-width: 639px) {
+    .calc-key { height: 2.5rem; }
   }
   /* Basic / Scientific: expression column plus the history column. History is open by default on
      wide screens so the page never has a half-empty right side; the History button still toggles it. */
@@ -259,11 +318,8 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     display: inline-block; padding: 0 .25rem; border: 1px solid rgb(var(--line)); border-radius: calc(.25rem * var(--rs));
     background: rgb(var(--fg) / .05); color: rgb(var(--fg)); font-family: inherit; font-size: .6875rem; line-height: 1.3;
   }
-  /* The keypad and the result row keep their natural size: only the expression input grows. */
-  .calc-keypad > .btn { min-height: 3rem; }
-  .calc-expr { height: auto; line-height: 1.5; padding-top: calc(.625rem * var(--d)); padding-bottom: calc(.625rem * var(--d)); }
-  .calc-keypad { min-width: 0; }
-  .calc-keypad > .btn { min-width: 0; padding-left: .5rem; padding-right: .5rem; }
+  /* The expression input keeps its natural size; the keypad keys have a fixed height (see .calc-key). */
+  .calc-expr { height: auto; line-height: 1.5; padding-top: calc(.5rem * var(--d)); padding-bottom: calc(.5rem * var(--d)); }
   /* The help modal's backdrop uses the page tint, like every other dialog in the app. */
   .calc-help-overlay { background: rgb(var(--bg) / .72); backdrop-filter: blur(2px); }
 
@@ -726,6 +782,20 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .day-pop-value input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
 
+/* ================= Calculator keypad grid (outside @layer components) =================
+   Tailwind's `grid` utility lives in the utilities layer, which beats @layer components, so
+   these layout rules must sit outside the layer to win. They are the only thing that decides
+   the keypad's columns: function block 3 x 5, number block 4 x 5, side by side in 3fr / 4fr. */
+.calc-keypad-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; min-width: 0; }
+.calc-keypad-wrap-sci { grid-template-columns: minmax(0, 3fr) minmax(0, 4fr); }
+.calc-keypad { display: grid; gap: .5rem; min-width: 0; }
+.calc-keypad-fn { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.calc-keypad-num { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* Narrow windows: the function block stacks above the number block (still 3 columns). */
+@media (max-width: 639px) {
+  .calc-keypad-wrap-sci { grid-template-columns: minmax(0, 1fr); }
+}
+
   /* ---- Dashboard Edit Mode & Widget Shells ---- */
   .dash-widget-box {
     position: relative;
@@ -825,4 +895,46 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     box-shadow: none !important;
     background: transparent !important;
     border-radius: 0 !important;
+  }
+
+  /* ---------------------------------------------------------------------------
+     PREVIEW BAR (npm run preview / npm run shots). Preview-only chrome: it is
+     never rendered by the app (main.tsx renders App, not the preview entry).
+     Theme tokens only.
+     --------------------------------------------------------------------------- */
+  .preview-bar {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgb(var(--line));
+    background: rgb(var(--surface));
+    color: rgb(var(--fg));
+    font-size: 0.75rem;
+  }
+  .preview-bar-title {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgb(var(--muted));
+  }
+  .preview-bar-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: rgb(var(--muted));
+  }
+  .preview-bar-field select {
+    padding: 0.125rem 0.375rem;
+    border: 1px solid rgb(var(--line));
+    border-radius: 0.375rem;
+    background: rgb(var(--card));
+    color: rgb(var(--fg));
+    font-size: 0.75rem;
+  }
+  .preview-bar-meta {
+    margin-left: auto;
+    color: rgb(var(--muted));
   }

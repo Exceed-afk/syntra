@@ -6,10 +6,12 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
     />
+    <!-- Every page in a plain browser with sample data: npm run preview, or npm run shots for screenshots.
+         Options are in the URL: ?page=tasks&theme=forest&mode=dark (see src/preview.tsx). -->
     <title>Design preview - Feeblest's Everything</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/preview.tsx"></script>
+    <script type="module" src="/src/preview/preview.tsx"></script>
   </body>
 </html>
