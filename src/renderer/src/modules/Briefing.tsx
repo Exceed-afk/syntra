@@ -32,10 +32,8 @@ export function Briefing({ onNavigate, onOpen }: ModuleProps) {
   useRefreshOnCapture(load)
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Daily briefing" subtitle={data ? formatDate(data.today) + '. ' + data.summary : 'Your day at a glance.'}>
-        <Sunrise size={20} className="text-accent" />
-      </PageHeader>
+    <div className="page">
+      <PageHeader title="Daily briefing" help={data ? formatDate(data.today) + '. ' + data.summary : 'Your day at a glance: tasks due, habits, savings, open trades and yesterday\u2019s mood, assembled from what you already track.'} />
       {error && <p role="alert" className="text-sm text-neg">{error}</p>}
 
       {data && (

@@ -1,7 +1,7 @@
 node_modules
 out
 dist
-# the design preview (npm run preview): a browser-only copy of the Review page, built fresh each run
+# the design preview (npm run preview): EVERY page in a browser with sample data, built fresh each run
 .preview
 # local tooling and app state, never part of the source tree
 .tooling/
@@ -9,3 +9,14 @@ dist
 .cloud-attachments/
 err.log
 out.log
+
+# calculator layout harness build output (npx vite build --config vite.calch.config.ts)
+.calch
+
+# ui audit screenshots (npm run shots writes here; temporary)
+.ui-audit/
+
+# generated native build config (written by npm install / electron-rebuild, never edited by hand)
+build/config.gypi
+# patchright QA harness output
+scripts/qa-result.json

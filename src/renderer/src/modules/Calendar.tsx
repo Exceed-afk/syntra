@@ -110,8 +110,8 @@ export function Calendar({ onOpen, onNavigate }: ModuleProps) {
   const day = data?.weeks.flat().find((d) => d.date === selected) ?? null
 
   return (
-    <div className="page page-lg">
-      <PageHeader title="Calendar" subtitle={data?.month === month ? data.label : monthLabel(month)}>
+    <div className="page">
+      <PageHeader title="Calendar" help={`${data?.month === month ? data.label : monthLabel(month)}. What happened on each day across the logbook, trades, savings, habits, bills, focus and content. Pick a day to see its details.`}>
         <div className="flex items-center">
           <button className="btn-icon" aria-label="Previous month" title="Previous month" onClick={() => step(-1)}><ChevronLeft size={18} /></button>
           <button className="btn-icon" aria-label="Next month" title="Next month" onClick={() => step(1)}><ChevronRight size={18} /></button>

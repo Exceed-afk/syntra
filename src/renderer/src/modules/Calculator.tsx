@@ -107,8 +107,8 @@ export function Calculator(_props: ModuleProps) {
   )
 
   return (
-    <div className="page page-lg calculator-page">
-      <PageHeader title="Calculators" subtitle="Simple tools for everyday calculations." />
+    <div className="page calculator-page">
+      <PageHeader title="Calculators" help="Simple tools for everyday calculations: loan, interest, tip, percentage, units, currency, dates and age." />
       <div className="calc-tabs" role="group" aria-label="Calculator type">
         {CALCULATORS.map((calculator) => (
           <button key={calculator.id} type="button" className="calc-tab" aria-pressed={active === calculator.id}

@@ -48,8 +48,8 @@ export function Logbook({ target, onTargetHandled }: ModuleProps) {
   }, [])
 
   return (
-    <div className="page page-sm">
-      <PageHeader title="Logbook" subtitle={loaded && entries.length > 0 ? `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}${hasFilter ? ' match' : ''}` : 'A line a day is plenty.'}>
+    <div className="page">
+      <PageHeader title="Logbook" help={loaded && entries.length > 0 ? `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}${hasFilter ? ' match these filters' : ''}. A line a day is plenty.` : 'Your dated journal. A line a day is plenty.'}>
         <button className="btn-primary" onClick={() => setEditing('new')} title="Ctrl+N">
           <Plus size={16} /> New entry
         </button>

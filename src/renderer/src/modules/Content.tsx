@@ -127,8 +127,8 @@ export function Content(_props: ModuleProps) {
     <div className="page">
       <PageHeader
         title="Content"
-        subtitle={items.length > 0
-          ? `${items.length} ${items.length === 1 ? 'item' : 'items'} in the pipeline · ${publishedThisMonth} published this month`
+        help={items.length > 0
+          ? `${items.length} ${items.length === 1 ? 'item' : 'items'} in the pipeline, ${publishedThisMonth} published this month. A pipeline for videos, shorts, streams and posts, from first idea to published.`
           : 'A pipeline for videos, shorts, streams and posts, from first idea to published.'}
       >
         <button className="btn-primary" onClick={() => setEditing('new')} title="Ctrl+N">

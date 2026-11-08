@@ -13,6 +13,7 @@
 // rows. Where the rule lives in the main process's SQL, a small readable
 // approximation is used instead (marked "approx": stats counts, insights).
 import { DEFAULT_SETTINGS, type EverythingApi, type ImportPreview, type Settings } from '../../../shared/types'
+import { resolveOccurrences } from '../../../shared/tasks'
 import { computeStats, pnlSeries } from '../../../shared/trades'
 import { taskDashboard, taskWeekStart, addTaskDays } from '../../../shared/tasks'
 import { logStreak } from '../../../shared/dashboard'
@@ -218,7 +219,8 @@ const api: EverythingApi = {
   },
 
   tasks: {
-    list: () => tick(clone(activeTasks().sort((a, b) => a.position - b.position))),
+    // Main resolves recurring occurrences at read time (shared/tasks.ts).
+    list: () => tick(clone(resolveOccurrences(activeTasks(), TODAY).sort((a, b) => a.position - b.position))),
     completed: (date) => tick(clone(activeTasks().filter((t) => t.status === 'done' && (t.completedAt ?? '').slice(0, 10) === date))),
     trash: () => tick(clone(db.trashTasks)),
     create: (input) => {

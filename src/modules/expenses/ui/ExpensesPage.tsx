@@ -63,7 +63,7 @@ export function ExpensesPage(_props: ModuleProps) {
     <div className="page">
       <PageHeader
         title="Expenses"
-        subtitle="Where your money goes, and how much you can still spend this month."
+        help="Where your money goes, and how much you can still spend this month. All amounts are kept in whole cents."
       />
 
       <div className="seg mb-5" role="tablist" aria-label="Expenses views">

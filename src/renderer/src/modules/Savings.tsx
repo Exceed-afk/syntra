@@ -44,7 +44,7 @@ export function Savings({ target, onTargetHandled }: ModuleProps) {
 
   return (
     <div className="page">
-      <PageHeader title="Savings" subtitle={goals.length > 0 ? `${fmtAmount(total)} saved across ${goals.length} ${goals.length === 1 ? 'goal' : 'goals'}` : 'Goals and plain accounts, one balance each.'}>
+      <PageHeader title="Savings" help={goals.length > 0 ? `${fmtAmount(total)} saved across ${goals.length} ${goals.length === 1 ? 'goal' : 'goals'}. Each goal keeps one balance from its deposits and withdrawals.` : 'Goals and plain accounts, one balance each.'}>
         <button className="btn-primary" onClick={() => setEditor('new')} title="Ctrl+N">
           <Plus size={16} /> New goal
         </button>

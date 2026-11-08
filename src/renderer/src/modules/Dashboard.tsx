@@ -148,8 +148,8 @@ export function Dashboard({ onOpen, onNavigate }: ModuleProps) {
   const widgetProps: WidgetProps = { editMode: editing, onNavigate, onOpen }
 
   return (
-    <div className="page page-lg">
-      <PageHeader title={greeting()} subtitle={`${formatDate(today())}. Your data stays on this computer.`}>
+    <div className="page page-wide">
+      <PageHeader title={greeting()} help={`${formatDate(today())}. Your data stays on this computer. Drag a card by its handle, or use its arrows, to arrange the dashboard.`}>
         {!editing ? (
           <button className="btn btn-sm" onClick={() => setEditing(true)}>
             <Settings2 size={14} aria-hidden="true" /> Customize

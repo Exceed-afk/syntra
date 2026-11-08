@@ -51,6 +51,27 @@ The current keypad is a small subset. Google's has these, in this order of usefu
 - [x] History button (history storage already exists) — already present in the toolbar
 - [ ] `Rnd` (random number). Optional: the script sandbox is deliberately deterministic, so only allow it in the bar.
 
+### Layout pass (2026-11-07)
+
+Layout only — no calculation logic changed.
+
+- **Header**: title on the left, History and Help as icon buttons on the right (history count as a small
+  badge plus a tooltip, both with `aria-label`s). The subtitle line is gone. The ten mode tabs are ONE row
+  with an underline for the active tab; the row scrolls sideways instead of wrapping when the window is narrow.
+- **Display card**: DEG/RAD/GRAD, the `Inv` toggle and the output-format dropdown moved out of the header into
+  a small row inside the card. The expression is echoed small and right-aligned, the result is large (~32px)
+  below it. Copy is an icon button; the LaTeX button sits next to it.
+- **Scientific keypad**: one grid system. Function block (3 x 5: sin cos tan / ln log √ / x² xʸ ʸ√x / π e x! /
+  ( ) EXP) beside the number block (4 x 5: C DEL % ÷ / 7 8 9 × / 4 5 6 − / 1 2 3 + / 0 . Ans =) in a 3fr / 4fr
+  split, same 44px key height and gap. The duplicate `fact`, `sqrt` and `^` keys are gone (x!, √ and xʸ do the
+  same job); typing `sqrt(`, `fact(` or `^` in the expression bar still works. `log` inserts `log(` (base 10).
+  Number keys are neutral, operators (÷ × − + % DEL) carry a soft success tint, `=` is solid success, `C` is
+  danger-coloured text. `Inv` swaps labels AND inserted text (sin⁻¹/cos⁻¹/tan⁻¹, eˣ, 10ˣ, x²) and is visibly active.
+- **Fit**: at 1280 x 800 the header, display and keypad fit with no vertical scrolling. Below 640px the function
+  block stacks above the number block (still 3 columns).
+- **Basic mode** uses the same number block, so it gained the new key styling and the 4-column layout; it has no
+  function block (unchanged behaviour).
+
 ## 3. Next to build (no new dependencies)
 
 | Item | Why it's easy |

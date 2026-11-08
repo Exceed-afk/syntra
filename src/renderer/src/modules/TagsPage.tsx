@@ -172,7 +172,7 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
 
   return (
     <div className="page">
-      <PageHeader title="Tags" subtitle="Every tag in one place, across every tool. Renaming or merging applies everywhere." />
+      <PageHeader title="Tags" help="Every tag in one place, across every tool. Renaming or merging applies everywhere; the items themselves are never touched." />
       {error && <p role="alert" className="mb-3 text-sm text-neg">{error}</p>}
       {note && <p role="status" className="mb-3 text-sm text-muted">{note}</p>}
 
