@@ -5,7 +5,9 @@
 // and the preview renders live next to the text. Everything is keyboard
 // reachable: Ctrl+N new, Ctrl+E toggle preview, Esc leaves the fields.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, CheckSquare, Link2, Pin, Plus, Search, StickyNote, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, CheckSquare, Link2, Pin, Plus, StickyNote, Trash2 } from 'lucide-react'
+import { Toolbar, ToolbarStart, ToolbarEnd, ToolbarSearch } from '../components/Toolbar'
+import { Segmented } from '../components/Segmented'
 import type { ModuleProps } from '../../../renderer/src/lib/navigation'
 import type { Template } from '../../../shared/types'
 import type { NoteDTO as Note } from '../../../shared/notesBridge'
@@ -114,15 +116,7 @@ export function Notes({ onNavigate }: ModuleProps) {
 
   return (
     <div className="page">
-      <PageHeader
-        title="Notes"
-        subtitle="Undated material: ideas, reference, meeting notes and checklists. The Logbook stays your dated journal."
-      >
-        <div className="seg" role="group" aria-label="Editor layout">
-          <button aria-pressed={mode === 'live'} onClick={() => setMode('live')} title="Ctrl+E">Split</button>
-          <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>Write</button>
-          <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>Read</button>
-        </div>
+      <PageHeader title="Notes" help="Undated material: ideas, reference, meeting notes and checklists. The Logbook stays your dated journal. Notes autosave; type #tags to organise them and [[Links]] to connect them.">
         <button className="btn-primary" onClick={() => void createNote()} title="Ctrl+N">
           <Plus size={16} aria-hidden="true" /> New note
         </button>
@@ -130,8 +124,26 @@ export function Notes({ onNavigate }: ModuleProps) {
 
       {error && <p role="alert" className="mb-3 text-sm text-neg">{error}</p>}
 
+      {/* Toolbar: the Notes/Archive tabs, the tag filter and the search field, one row. */}
+      <Toolbar label="Notes toolbar">
+        <ToolbarStart>
+          <Segmented label="Notes or archive" kind="tabs" value={showArchive ? 'archive' : 'notes'}
+            options={[{ id: 'notes', label: 'Notes' }, { id: 'archive', label: 'Archive', icon: Archive }]}
+            onChange={(next) => { setShowArchive(next === 'archive'); setSelectedId(null) }} />
+          {knownTags.length > 0 && (
+            <select className="field field-sm" aria-label="Filter notes by tag" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+              <option value="">All tags</option>
+              {knownTags.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
+        </ToolbarStart>
+        <ToolbarEnd>
+          <ToolbarSearch value={search} onChange={setSearch} placeholder="Search notes" label="Search notes" />
+        </ToolbarEnd>
+      </Toolbar>
+
       {loaded && notes.length === 0 && !showArchive && search === '' ? (
-        <>
+        <div className="notes-empty">
           <EmptyState
             icon={StickyNote}
             title="Your first note starts here"
@@ -139,48 +151,19 @@ export function Notes({ onNavigate }: ModuleProps) {
             action={<button className="btn-primary" onClick={() => void createNote()}><Plus size={16} aria-hidden="true" /> Create a note</button>}
           />
           {templates.length > 0 && (
-            <section className="mt-5">
-              <h2 className="section-title">Start from a template</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {templates.map((t) => (
-                  <button key={t.id} className="btn" onClick={() => void useTemplate(t)}>{t.name}</button>
-                ))}
-              </div>
-            </section>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <span className="meta">Or start from a template:</span>
+              {templates.map((t) => (
+                <button key={t.id} className="btn btn-sm" onClick={() => void useTemplate(t)}>{t.name}</button>
+              ))}
+            </div>
           )}
-        </>
+        </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
           {/* ---------------- list ---------------- */}
           <aside className="min-w-0">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <input className="field pl-9" placeholder="Search notes" aria-label="Search notes"
-                value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button className="btn btn-sm" aria-pressed={!showArchive} onClick={() => { setShowArchive(false); setSelectedId(null) }}>
-                Notes
-              </button>
-              <button className="btn btn-sm" aria-pressed={showArchive} onClick={() => { setShowArchive(true); setSelectedId(null) }}>
-                <Archive size={13} aria-hidden="true" /> Archive
-              </button>
-              {tagFilter && (
-                <button className="btn btn-sm" onClick={() => setTagFilter('')}>#{tagFilter} ✕</button>
-              )}
-            </div>
-
-            {knownTags.length > 0 && (
-              <label className="mt-2 block text-xs text-muted">Filter by tag
-                <select className="field mt-1" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
-                  <option value="">All tags</option>
-                  {knownTags.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </label>
-            )}
-
-            <ul className="mt-3 flex max-h-[calc(100vh-19rem)] flex-col gap-1.5 overflow-y-auto pr-1">
+            <ul className="flex max-h-[calc(100vh-14rem)] flex-col gap-1.5 overflow-y-auto pr-1">
               {visible.map((n) => (
                 <li key={n.id}>
                   <button
@@ -206,6 +189,14 @@ export function Notes({ onNavigate }: ModuleProps) {
 
           {/* ---------------- editor ---------------- */}
           <section className="min-w-0">
+            {/* The editor-layout switch belongs to the editor: hidden until a note is open. */}
+            {selected && (
+              <div className="mb-2 flex justify-end">
+                <Segmented label="Editor layout" kind="group" size="sm" value={mode}
+                  options={[{ id: 'live', label: 'Split', title: 'Ctrl+E' }, { id: 'edit', label: 'Write' }, { id: 'preview', label: 'Read' }]}
+                  onChange={(next) => setMode(next)} />
+              </div>
+            )}
             {selected ? (
               <NoteEditor
                 key={selected.id}
