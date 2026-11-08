@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Brain, Trash2, Zap } from 'lucide-react'
 import { DEFAULT_INTELLIGENCE, type IntelligenceFeatureToggles } from '../../../shared/types'
 import { DEFAULT_AUTOMATIONS, type AutomationSettings, type AutomationActivity } from '../../../shared/automations'
@@ -12,41 +12,24 @@ const PLATFORM = typeof process !== 'undefined' ? process.platform : 'unknown'
 import { applyFromMain, getCurrentSettings, useSettings } from '../lib/settingsStore'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
+import { SwitchRow } from '../components/SwitchRow'
+import { Segmented } from '../components/Segmented'
 
-// Per-feature toggle card. Matches the existing Settings page style (no hardcoded colours).
-function FeatureCard({
-  name, description, enabled, onToggle
-}: {
-  name: string
-  description: string
-  enabled: boolean
-  onToggle: () => void
-}) {
-  return (
-    <label className="card card-pad card-interactive cursor-pointer" aria-pressed={enabled}>
-      <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={onToggle}
-          className="mt-0.5 shrink-0 rounded border-line text-accent focus:ring-accent/40"
-          aria-describedby={`${name}-desc`}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="font-medium text-sm">{name}</div>
-          <p id={`${name}-desc`} className="text-sm text-muted mt-0.5">{description}</p>
-        </div>
-      </div>
-    </label>
-  )
-}
+// The three groups of the page, switched with the segmented control under the header.
+// Tabs (not anchors) so the AI provider is one click away without scrolling past everything else.
+type IntelligenceTab = 'features' | 'automations' | 'assistant'
+const TABS: { id: IntelligenceTab; label: string }[] = [
+  { id: 'features', label: 'Features' },
+  { id: 'automations', label: 'Automations' },
+  { id: 'assistant', label: 'Assistant' }
+]
 
 const FEATURES: { key: keyof IntelligenceFeatureToggles; name: string; description: string }[] = [
   { key: 'dailyBriefing', name: 'Daily briefing', description: 'A short summary of the day\'s activity shown on the dashboard.' },
   { key: 'automations', name: 'Automations', description: 'Rule-based actions that run automatically, like moving money when a goal is close.' },
   { key: 'smartQuickAdd', name: 'Smart quick-add', description: 'Suggestions when capturing something quickly, based on what you usually log.' },
   { key: 'insights', name: 'Insights', description: 'Cross-tool observations, like mood on days you finished every habit.' },
-  { key: 'aiAssistant', name: 'AI assistant', description: 'An AI helper that can answer questions about your data. Needs an AI provider to be chosen below.' }
+  { key: 'aiAssistant', name: 'AI assistant', description: 'An AI helper that can answer questions about your data. Needs an AI provider to be chosen under Assistant.' }
 ]
 
 export function Intelligence() {
@@ -55,6 +38,7 @@ export function Intelligence() {
   const [automations, setAutomations] = useState<AutomationSettings>(DEFAULT_AUTOMATIONS)
   const [activity, setActivity] = useState<AutomationActivity[]>([])
   const [saveError, setSaveError] = useState('')
+  const [tab, setTab] = useState<IntelligenceTab>('features')
   const toggleRevision = useRef<Partial<Record<keyof IntelligenceFeatureToggles, number>>>({})
 
   const refreshAutomation = () => {
@@ -100,103 +84,109 @@ export function Intelligence() {
 
       {saveError && <p role="alert" className="text-sm text-neg">{saveError}</p>}
 
+      {/* The three groups of the page. Tabs, not anchors, so the AI provider is one click
+          away instead of below everything else. Arrow keys and Home/End move (Segmented). */}
+      <div className="mb-5">
+        <Segmented label="Intelligence sections" kind="tabs" value={tab} options={TABS} onChange={setTab} />
+      </div>
+
       <div className="space-y-5">
         {/* ---- Feature toggles ---- */}
+        {tab === 'features' && (
         <section className="card card-pad-lg" aria-labelledby="features-title">
           <h2 id="features-title" className="section-title">Features</h2>
           <p className="mt-1 text-sm text-muted">Each feature works on its own. Turn on only what you want to use.</p>
 
-          <div className="mt-4 flex flex-col gap-2" role="group" aria-label="Feature toggles">
+          <div className="mt-2" role="group" aria-label="Feature toggles">
             {regularFeatures.map(({ key, name, description }) => (
-              <FeatureCard
+              <SwitchRow
                 key={key}
-                name={name}
+                label={name}
                 description={description}
-                enabled={features[key]}
-                onToggle={() => toggle(key)}
+                checked={features[key]}
+                onChange={() => toggle(key)}
               />
             ))}
           </div>
 
           {/* AI assistant — only meaningful when an AI provider is available */}
-          <div className="mt-4 flex flex-col gap-2">
-            <FeatureCard
-              name={aiFeature.name}
+          <div className="mt-2">
+            <SwitchRow
+              label={aiFeature.name}
               description={aiFeature.description}
-              enabled={features.aiAssistant}
-              onToggle={() => toggle('aiAssistant')}
+              checked={features.aiAssistant}
+              onChange={() => toggle('aiAssistant')}
             />
           </div>
         </section>
+        )}
 
         {/* ---- Automations (step 3) ---- */}
+        {tab === 'automations' && (
         <section className="card card-pad-lg" aria-labelledby="automations-title">
           <h2 id="automations-title" className="section-title flex items-center gap-2"><Zap size={15} /> Automations</h2>
           <p className="mt-1 text-sm text-muted">
             Small, predictable helpers. Each one works on its own and is off until you turn it on.
             They only create drafts or show messages — they never edit or delete anything you made.
           </p>
-          <div className="mt-4 flex flex-col gap-3">
-            <FeatureCard name="Loss reflection drafts" description="When a trade closes at a loss bigger than your threshold, create a draft logbook entry with a reflection prompt (tagged #automation)."
-              enabled={automations.lossReflection} onToggle={() => setAutomation({ lossReflection: !automations.lossReflection })} />
-            {automations.lossReflection && (
-              <label className="flex items-center gap-3 text-sm pl-9">
+          <div className="mt-2">
+            <SwitchRow label="Loss reflection drafts" description="When a trade closes at a loss bigger than your threshold, create a draft logbook entry with a reflection prompt (tagged #automation)."
+              checked={automations.lossReflection} onChange={() => setAutomation({ lossReflection: !automations.lossReflection })}>
+              <label className="flex items-center gap-3 text-sm">
                 <span className="text-muted">Loss threshold</span>
                 <input type="number" min="0" step="1" className="field w-24" value={automations.lossThreshold}
                   onChange={(e) => setAutomation({ lossThreshold: Math.max(0, Number(e.target.value) || 0) })}
                   aria-label="Loss threshold: create a reflection draft when a closed trade loses more than this" />
               </label>
-            )}
-            <FeatureCard name="Goal celebrations" description="When a savings goal reaches its target, show a celebration message and suggest setting a new goal."
-              enabled={automations.goalCelebration} onToggle={() => setAutomation({ goalCelebration: !automations.goalCelebration })} />
-            <FeatureCard name="Broken streak notes" description="When a habit streak of 7 or more days breaks, show a gentle note on the dashboard."
-              enabled={automations.streakReminder} onToggle={() => setAutomation({ streakReminder: !automations.streakReminder })} />
-            <FeatureCard name="Stale overdue tasks" description="When a task has been overdue for more than N days, surface it in the daily briefing."
-              enabled={automations.overdueTaskNudge} onToggle={() => setAutomation({ overdueTaskNudge: !automations.overdueTaskNudge })} />
-            {automations.overdueTaskNudge && (
-              <label className="flex items-center gap-3 text-sm pl-9">
+            </SwitchRow>
+            <SwitchRow label="Goal celebrations" description="When a savings goal reaches its target, show a celebration message and suggest setting a new goal."
+              checked={automations.goalCelebration} onChange={() => setAutomation({ goalCelebration: !automations.goalCelebration })} />
+            <SwitchRow label="Broken streak notes" description="When a habit streak of 7 or more days breaks, show a gentle note on the dashboard."
+              checked={automations.streakReminder} onChange={() => setAutomation({ streakReminder: !automations.streakReminder })} />
+            <SwitchRow label="Stale overdue tasks" description="When a task has been overdue for more than N days, surface it in the daily briefing."
+              checked={automations.overdueTaskNudge} onChange={() => setAutomation({ overdueTaskNudge: !automations.overdueTaskNudge })}>
+              <label className="flex items-center gap-3 text-sm">
                 <span className="text-muted">Overdue after</span>
                 <input type="number" min="0" step="1" className="field w-24" value={automations.overdueDays}
                   onChange={(e) => setAutomation({ overdueDays: Math.max(0, Number(e.target.value) || 0) })}
                   aria-label="Surface a task in the daily briefing once it has been overdue for more than this many days" />
                 <span className="text-muted">days</span>
               </label>
-            )}
-            <FeatureCard name="Loss-streak pause note" description="When the last N closed trades all lost, show a note suggesting a pause."
-              enabled={automations.lossStreakPause} onToggle={() => setAutomation({ lossStreakPause: !automations.lossStreakPause })} />
-            {automations.lossStreakPause && (
-              <label className="flex items-center gap-3 text-sm pl-9">
+            </SwitchRow>
+            <SwitchRow label="Loss-streak pause note" description="When the last N closed trades all lost, show a note suggesting a pause."
+              checked={automations.lossStreakPause} onChange={() => setAutomation({ lossStreakPause: !automations.lossStreakPause })}>
+              <label className="flex items-center gap-3 text-sm">
                 <span className="text-muted">Losses in a row</span>
                 <input type="number" min="2" step="1" className="field w-24" value={automations.lossStreakLength}
                   onChange={(e) => setAutomation({ lossStreakLength: Math.max(2, Number(e.target.value) || 2) })}
                   aria-label="Show a pause note after this many losses in a row" />
               </label>
-            )}
-            <FeatureCard name="Overtrading note" description="When more than N trades are dated today, show a note about your plan."
-              enabled={automations.overtradingNote} onToggle={() => setAutomation({ overtradingNote: !automations.overtradingNote })} />
-            {automations.overtradingNote && (
-              <label className="flex items-center gap-3 text-sm pl-9">
+            </SwitchRow>
+            <SwitchRow label="Overtrading note" description="When more than N trades are dated today, show a note about your plan."
+              checked={automations.overtradingNote} onChange={() => setAutomation({ overtradingNote: !automations.overtradingNote })}>
+              <label className="flex items-center gap-3 text-sm">
                 <span className="text-muted">Max trades per day</span>
                 <input type="number" min="1" step="1" className="field w-24" value={automations.maxTradesPerDay}
                   onChange={(e) => setAutomation({ maxTradesPerDay: Math.max(1, Number(e.target.value) || 1) })}
                   aria-label="Show an overtrading note when a day has more than this many trades" />
               </label>
-            )}
-            <FeatureCard name="Quick re-entry note" description="When a new trade opens within N minutes of a losing close, show a note. Only trades closed while this app was running carry a close time; old trades stay silent."
-              enabled={automations.quickReentryNote} onToggle={() => setAutomation({ quickReentryNote: !automations.quickReentryNote })} />
-            {automations.quickReentryNote && (
-              <label className="flex items-center gap-3 text-sm pl-9">
+            </SwitchRow>
+            <SwitchRow label="Quick re-entry note" description="When a new trade opens within N minutes of a losing close, show a note. Only trades closed while this app was running carry a close time; old trades stay silent."
+              checked={automations.quickReentryNote} onChange={() => setAutomation({ quickReentryNote: !automations.quickReentryNote })}>
+              <label className="flex items-center gap-3 text-sm">
                 <span className="text-muted">Within</span>
                 <input type="number" min="1" step="1" className="field w-24" value={automations.reentryMinutes}
                   onChange={(e) => setAutomation({ reentryMinutes: Math.max(1, Number(e.target.value) || 1) })}
                   aria-label="Show a quick re-entry note when a trade opens within this many minutes of a losing close" />
                 <span className="text-muted">minutes of a loss</span>
               </label>
-            )}
+            </SwitchRow>
           </div>
         </section>
+        )}
 
         {/* ---- Activity: what the automations did and when ---- */}
+        {tab === 'automations' && (
         <section className="card card-pad-lg" aria-labelledby="activity-title">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="activity-title" className="section-title">Automation activity</h2>
@@ -229,6 +219,7 @@ export function Intelligence() {
             </ul>
           )}
         </section>
+        )}
 
         {/* ---- Privacy statement ---- */}
         <section className="card card-pad-lg" aria-labelledby="privacy-title">
@@ -249,7 +240,7 @@ export function Intelligence() {
         </section>
 
         {/* ---- AI provider (step 6) ---- */}
-        {aiFeature.name && (
+        {tab === 'assistant' && aiFeature.name && (
           <AssistantProviderSection
             features={features}
           />
@@ -322,7 +313,7 @@ function AssistantProviderSection({ features }: {
 
       {aiProvider === 'cloud' && !assistant.cloudConfirmed && (
         <div className="mt-4 rounded-xl border border-neg/60 p-4">
-          <p className="text-sm font-medium">Confirmation required</p>
+            <p className="text-sm font-medium">Confirmation required</p>
           <p className="mt-1 text-sm text-muted">Type “{CLOUD_CONFIRM_PHRASE}” to confirm you understand that questions are sent over the internet to the provider above.</p>
           <div className="mt-2 flex gap-2">
             <input className="field" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} aria-label={`Type ${CLOUD_CONFIRM_PHRASE} to confirm`} />
@@ -386,7 +377,7 @@ function AssistantProviderSection({ features }: {
 
       <p className="mt-3 text-xs text-muted">
         The assistant is read-only: it can compute one numeric or list result per question and nothing else. It cannot create, edit or delete anything.
-        {features.aiAssistant ? ' The AI-assistant toggle above is on.' : ' Turn on the AI-assistant toggle above to make the Assistant page appear.'}
+        {features.aiAssistant ? ' The AI-assistant toggle is on (Features tab).' : ' Turn on the AI-assistant toggle in the Features tab to make the Assistant page appear.'}
       </p>
     </section>
   )
