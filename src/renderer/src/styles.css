@@ -46,8 +46,35 @@ html, body, #root { height: 100%; }
    empty page below the real one. Clamping html to the viewport kills that
    phantom document scrollbar; <main> keeps the one real scrollbar. */
 html { overflow-y: hidden; }
+/* The scrollbar of <main> keeps its room even on a short page (no overflow-y: scroll, so no empty track is
+   drawn). both-edges reserves it on BOTH sides of the content, so a centred page (.page, margin-inline: auto)
+   keeps its true centre: without it the 12px scrollbar narrowed the page and the whole layout jumped 12px
+   left when a long page (Trades, Tasks) was opened and 12px right when a short one was. Nothing else in the
+   app scrolls the page, and no dialog locks page scrolling, so an open Modal / SidePanel / palette cannot
+   shift the page behind it either. */
+main { scrollbar-gutter: stable both-edges; }
 body { @apply bg-bg font-sans text-fg antialiased; transition: background-color .2s, color .2s; }
-* { @apply transition-colors duration-150; scrollbar-width: thin; scrollbar-color: rgb(var(--fg) / .25) transparent; }
+/* Every scrollbar reads from the same tokens, so all 13 palettes and both light and dark follow without a
+   fixed colour: the thumb is the text colour at 35% (dark on every light palette, light on every dark one). */
+* {
+  @apply transition-colors duration-150;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--fg) / .35) rgb(var(--surface) / .2);
+}
+/* Chromium (the only engine the app runs in) draws the same scrollbar: a rounded thumb inset by a 3px
+   transparent border, a transparent track and a clearly brighter hover state. The box is 12px wide, so the
+   painted thumb is 6px but the grab area is the full 12px (Chromium's minimum of ~8px is met on both). */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgb(var(--fg) / .4);
+}
+*::-webkit-scrollbar-thumb:hover { background-color: rgb(var(--fg) / .6); }
+*::-webkit-scrollbar-thumb:active { background-color: rgb(var(--fg) / .75); }
+*::-webkit-scrollbar-corner { background: transparent; }
 /* accent-fg, not accent: it is darkened / lightened to stay readable, so the ring keeps 3:1+ with amber or orange accents too. */
 :focus-visible { outline: 2px solid rgb(var(--accent-fg)); outline-offset: 2px; }
 /* A field that holds other controls (the tag input) keeps the same visible ring for its inner input. */
@@ -195,13 +222,8 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .sb[data-collapsed='true'] :is(.sb-label, .sb-kbd, .sb-title) { display: none; }
   /* A scrollbar would take room from the 2.75rem icons and push them off-centre once the list is long; the rail still scrolls (wheel, keys, focus). */
   .sb[data-collapsed='true'] .sb-nav { scrollbar-width: none; }
-  /* A thin, quiet scrollbar for the full sidebar list: `thin` keeps it an overlay-style sliver that does not take
-     layout width from the labels; the colours come from the theme so every palette and both styles follow. */
-  .sb-nav { scrollbar-width: thin; scrollbar-color: rgb(var(--fg) / .25) transparent; }
-  .sb-nav::-webkit-scrollbar { width: 6px; }
-  .sb-nav::-webkit-scrollbar-thumb { border-radius: 999px; background: rgb(var(--fg) / .25); }
-  .sb-nav::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg) / .4); }
-  .sb-nav::-webkit-scrollbar-track { background: transparent; }
+  /* The sidebar list keeps its own scrolling rules (see .sb-nav above); only its scrollbar is styled, and it now
+     follows the app-wide scrollbar style at the top of this file (same tokens, same hover state). */
 
   /* Classic minimal: the sidebar sits flush with the page, and the active page is shown by the edge marker and weight only. */
   [data-style='minimal'] .sb { background: rgb(var(--bg)); }
@@ -422,7 +444,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .calc-cur-textarea { min-height: 6rem; resize: vertical; }
   .calc-cur-preview { display: flex; flex-direction: column; gap: calc(.625rem * var(--d)); padding: calc(.75rem * var(--d));
     border: 1px dashed rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); }
-  .calc-cur-table-wrap { max-width: 100%; overflow-x: auto; }
+  .calc-cur-table-wrap { max-width: 100%; overflow-x: auto; max-height: 18rem; overflow-y: auto; scrollbar-gutter: stable; }
   .calc-cur-table { width: 100%; border-collapse: collapse; font-size: .8125rem; }
   .calc-cur-table th, .calc-cur-table td { padding: .375rem .5rem; border-bottom: 1px solid rgb(var(--line)); text-align: left; white-space: nowrap; }
   .calc-cur-table th { font-size: .6875rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgb(var(--muted)); }
@@ -553,7 +575,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .tbl tbody tr[tabindex]:focus-visible { outline-offset: -2px; background: rgb(var(--fg) / .04); }
   .tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
   .tbl .secondary { color: rgb(var(--muted)); }
-  .tbl-wrap { overflow: auto; max-height: calc(100vh - 22rem); min-height: 6rem; border-radius: inherit; }
+  .tbl-wrap { overflow: auto; max-height: calc(100vh - 22rem); min-height: 6rem; border-radius: inherit; scrollbar-gutter: stable; }
 
   /* Badges always carry a word (or a glyph), never colour alone */
   .badge { display: inline-flex; align-items: center; gap: .25rem; padding: .0625rem .5rem; border-radius: calc(.5rem * var(--rs)); font-size: .75rem; line-height: 1.25rem; font-weight: 500; white-space: nowrap; }
@@ -725,7 +747,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .cp-input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 1rem; color: rgb(var(--fg)); }
   .cp-input::placeholder { color: rgb(var(--muted)); }
   .cp-heading { flex: none; padding: calc(.625rem * var(--d)) calc(1.25rem * var(--d)) 0; font-size: .6875rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: rgb(var(--muted)); }
-  .cp-list { flex: 1; min-height: 0; margin: 0; padding: calc(.5rem * var(--d)); overflow-y: auto; list-style: none; scroll-padding: calc(.5rem * var(--d)); }
+  .cp-list { flex: 1; min-height: 0; margin: 0; padding: calc(.5rem * var(--d)); overflow-y: auto; scrollbar-gutter: stable; list-style: none; scroll-padding: calc(.5rem * var(--d)); }
   .cp-opt {
     display: flex; align-items: center; gap: .75rem; padding: calc(.5rem * var(--d)) calc(.75rem * var(--d));
     border-radius: calc(.75rem * var(--rs)); font-size: .875rem; color: rgb(var(--fg)); cursor: pointer;
@@ -983,7 +1005,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .count-badge { display: inline-grid; place-items: center; min-width: 1.125rem; height: 1.125rem; padding: 0 .25rem; border-radius: 999px; background: rgb(var(--accent)); color: rgb(var(--accent-fg)); font-size: .6875rem; font-weight: 600; }
 
   /* Popover. */
-  .popover { position: absolute; top: calc(100% + .375rem); left: 0; z-index: 40; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); padding: .75rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); background: rgb(var(--card)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); }
+  /* A popover that is taller than the window scrolls inside itself. `stable` (one edge: these hug the
+     toolbar's side) keeps its contents from shifting when that happens. */
+  .popover { position: absolute; top: calc(100% + .375rem); left: 0; z-index: 40; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); max-height: calc(100vh - 8rem); overflow-y: auto; scrollbar-gutter: stable; padding: .75rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); background: rgb(var(--card)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); }
   .popover[data-align='end'] { left: auto; right: 0; }
   .popover-filters { display: flex; flex-direction: column; gap: .625rem; min-width: 16rem; }
   .popover-actions { display: flex; justify-content: flex-end; padding-top: .25rem; border-top: 1px solid rgb(var(--line)); }
@@ -1000,7 +1024,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .filter-chips-clear:hover { color: rgb(var(--fg)); }
 
   /* Modal (ConfirmDialog / PromptDialog). */
-  .modal-scrim { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 3rem 1rem; background: rgb(var(--border) / .45); backdrop-filter: blur(1px); }
+  /* A tall dialog scrolls here, not on <html>/<body>: the page behind keeps its scroll position and its
+     reserved scrollbar room (see the `main` rule at the top), so opening a dialog never shifts the page. */
+  .modal-scrim { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; scrollbar-gutter: stable both-edges; padding: 3rem 1rem; background: rgb(var(--border) / .45); backdrop-filter: blur(1px); }
   .modal-panel { width: min(30rem, 100%); padding: 1.25rem; outline: none; }
   .modal-panel[data-size='sm'] { width: min(24rem, 100%); }
   .modal-panel[data-size='lg'] { width: min(46rem, 100%); }
@@ -1013,7 +1039,8 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .side-panel { display: flex; flex-direction: column; width: min(26rem, 100%); height: 100%; background: rgb(var(--card)); border-left: 1px solid rgb(var(--line)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); animation: side-panel-in .16s ease-out; outline: none; }
   .side-panel[data-width='wide'] { width: min(36rem, 100%); }
   .side-panel-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .875rem 1rem; border-bottom: 1px solid rgb(var(--line)); }
-  .side-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .875rem; }
+  /* stable: opening a panel whose content is long does not narrow (and shift) its own body. */
+  .side-panel-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding: 1rem; display: flex; flex-direction: column; gap: .875rem; }
   .side-panel-foot { display: flex; justify-content: flex-end; gap: .5rem; padding: .75rem 1rem; border-top: 1px solid rgb(var(--line)); }
   @keyframes side-panel-in { from { transform: translateX(1.5rem); opacity: .4; } to { transform: none; opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .side-panel { animation: none; } }
