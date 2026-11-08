@@ -938,3 +938,135 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     margin-left: auto;
     color: rgb(var(--muted));
   }
+
+  /* ---------------------------------------------------------------------------
+     SHARED LAYOUT PIECES (components/PageHeader.tsx, Toolbar.tsx, Segmented.tsx,
+     FilterPopover.tsx, Popover.tsx, Modal.tsx, SidePanel.tsx, SwitchRow.tsx).
+     Theme tokens only. The rules these implement are written in README.md
+     ("Shared page layout").
+     --------------------------------------------------------------------------- */
+
+  /* Page width: .page is the normal width; .page-wide is for data-heavy pages. */
+  .page { width: 100%; max-width: 64rem; margin-inline: auto; padding: 1.5rem 1.5rem 3rem; }
+  .page-wide { width: 100%; max-width: 86rem; margin-inline: auto; padding: 1.5rem 1.5rem 3rem; }
+
+  /* Header: title + badge + help on the left, actions on the right. One line. */
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .page-head-title { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+  .page-head-title .page-title { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .page-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .help-anchor, .toolbar-popover-anchor { position: relative; display: inline-flex; }
+  .help-button { color: rgb(var(--muted)); }
+  .help-button:hover { color: rgb(var(--fg)); }
+
+  /* Toolbar: one row under the header. */
+  .page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .5rem .75rem; flex-wrap: wrap; margin-bottom: .75rem; }
+  .page-toolbar-start, .page-toolbar-end { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-width: 0; }
+  .page-toolbar-end { margin-left: auto; justify-content: flex-end; }
+  .toolbar-search { display: inline-flex; min-width: 12rem; flex: 1 1 12rem; max-width: 20rem; }
+  .toolbar-search .field { width: 100%; }
+
+  /* Segmented control: one style (see components/Segmented.tsx). */
+  .seg-count { margin-left: .375rem; font-size: .6875rem; color: rgb(var(--muted)); font-variant-numeric: tabular-nums; }
+  .seg > button[aria-selected='true'] .seg-count, .seg > button[aria-pressed='true'] .seg-count { color: inherit; opacity: .75; }
+  .seg > button:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 1px; }
+  .seg-sm > button { padding: .125rem .5rem; font-size: .75rem; }
+
+  /* Count badge for a closed control (e.g. "Filters 2"). */
+  .count-badge { display: inline-grid; place-items: center; min-width: 1.125rem; height: 1.125rem; padding: 0 .25rem; border-radius: 999px; background: rgb(var(--accent)); color: rgb(var(--accent-fg)); font-size: .6875rem; font-weight: 600; }
+
+  /* Popover. */
+  .popover { position: absolute; top: calc(100% + .375rem); left: 0; z-index: 40; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); padding: .75rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); background: rgb(var(--card)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); }
+  .popover[data-align='end'] { left: auto; right: 0; }
+  .popover-filters { display: flex; flex-direction: column; gap: .625rem; min-width: 16rem; }
+  .popover-actions { display: flex; justify-content: flex-end; padding-top: .25rem; border-top: 1px solid rgb(var(--line)); }
+  .popover-help { max-width: min(22rem, calc(100vw - 2rem)); }
+  .popover-help-text { font-size: .8125rem; line-height: 1.55; color: rgb(var(--muted)); }
+  .popover-help-text p + p { margin-top: .5rem; }
+
+  /* Filter chips (active filters), under the toolbar. */
+  .filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin: -.25rem 0 .75rem; }
+  .filter-chip { display: inline-flex; align-items: center; gap: .25rem; padding: .125rem .25rem .125rem .5rem; border: 1px solid rgb(var(--line)); border-radius: 999px; background: rgb(var(--fg) / .04); font-size: .75rem; }
+  .filter-chip button { display: inline-grid; place-items: center; width: 1.125rem; height: 1.125rem; border-radius: 999px; color: rgb(var(--muted)); }
+  .filter-chip button:hover { background: rgb(var(--fg) / .1); color: rgb(var(--fg)); }
+  .filter-chips-clear { font-size: .75rem; color: rgb(var(--muted)); text-decoration: underline; text-underline-offset: 2px; }
+  .filter-chips-clear:hover { color: rgb(var(--fg)); }
+
+  /* Modal (ConfirmDialog / PromptDialog). */
+  .modal-scrim { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 3rem 1rem; background: rgb(var(--border) / .45); backdrop-filter: blur(1px); }
+  .modal-panel { width: min(30rem, 100%); padding: 1.25rem; outline: none; }
+  .modal-panel[data-size='sm'] { width: min(24rem, 100%); }
+  .modal-panel[data-size='lg'] { width: min(46rem, 100%); }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+  .modal-body { margin-top: .75rem; }
+  .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; margin-top: 1.25rem; }
+
+  /* Side detail panel: slides in from the right. */
+  .panel-scrim { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: flex-end; background: rgb(var(--border) / .35); }
+  .side-panel { display: flex; flex-direction: column; width: min(26rem, 100%); height: 100%; background: rgb(var(--card)); border-left: 1px solid rgb(var(--line)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); animation: side-panel-in .16s ease-out; outline: none; }
+  .side-panel[data-width='wide'] { width: min(36rem, 100%); }
+  .side-panel-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .875rem 1rem; border-bottom: 1px solid rgb(var(--line)); }
+  .side-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .875rem; }
+  .side-panel-foot { display: flex; justify-content: flex-end; gap: .5rem; padding: .75rem 1rem; border-top: 1px solid rgb(var(--line)); }
+  @keyframes side-panel-in { from { transform: translateX(1.5rem); opacity: .4; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .side-panel { animation: none; } }
+
+  /* Switch rows. */
+  .switch-row-block { border-bottom: 1px solid rgb(var(--line) / .6); }
+  .switch-row-block:last-child { border-bottom: 0; }
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .625rem .25rem; cursor: pointer; }
+  .switch-row.is-disabled { cursor: not-allowed; opacity: .6; }
+  .switch-row-text { min-width: 0; display: flex; flex-direction: column; gap: .125rem; }
+  .switch-row-label { font-size: .875rem; font-weight: 500; }
+  .switch-row-desc { font-size: .75rem; color: rgb(var(--muted)); }
+  .switch-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .switch-track { position: relative; flex: 0 0 auto; width: 2.25rem; height: 1.25rem; border-radius: 999px; background: rgb(var(--line)); transition: background-color .15s; }
+  .switch-thumb { position: absolute; top: .1875rem; left: .1875rem; width: .875rem; height: .875rem; border-radius: 999px; background: rgb(var(--card)); box-shadow: 0 1px 2px rgb(var(--border) / .5); transition: transform .15s; }
+  .switch-input:checked ~ .switch-track { background: rgb(var(--accent)); }
+  .switch-input:checked ~ .switch-track .switch-thumb { transform: translateX(1rem); }
+  .switch-input:focus-visible ~ .switch-track { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+  .switch-row-extra { padding: 0 .25rem .75rem 0; }
+
+  /* ---------------------------------------------------------------------------
+     TASKS (pilot page). Rows show checkbox, title, due date, priority badge and
+     tags; the date / priority / project editors only appear on hover or when a
+     control inside the row has focus, or in the side detail panel.
+     --------------------------------------------------------------------------- */
+  .quick-add { display: flex; gap: .5rem; margin-bottom: .75rem; }
+  .quick-add .field { flex: 1; min-width: 0; }
+  .field-sm { padding-top: .25rem !important; padding-bottom: .25rem !important; font-size: .75rem; }
+  .saved-view-item { flex: 1; min-width: 0; text-align: left; font-size: .8125rem; padding: .25rem .375rem; border-radius: .375rem; }
+  .saved-view-item:hover { background: rgb(var(--fg) / .06); }
+
+  .task-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin-top: .125rem; font-size: .75rem; color: rgb(var(--muted)); }
+  .task-row-date { font-variant-numeric: tabular-nums; }
+  .task-row-tag { font-size: .75rem; color: rgb(var(--muted)); }
+  .task-row-sub { color: rgb(var(--muted)); }
+  /* One-line rows where the window allows it; the meta line hides first. */
+  .task-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; min-height: 2.25rem; }
+  .task-row .task-title { min-width: 0; flex: 1 1 10rem; }
+  .task-row .task-row-meta { margin-top: .0625rem; }
+
+  /* The inline editors are `.field` (which is w-full by design); inside a row they
+     must size to their content instead of claiming the whole line. */
+  .task-row-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: .25rem; opacity: 0; transition: opacity .12s; flex: 0 0 auto; }
+  .task-row-actions .field,
+  .task-row-actions .field-sm { width: auto; min-width: 0; }
+  .task-row-actions input[type='date'] { width: 8.25rem; }
+  .task-row-actions select { width: 5.5rem; }
+  .task-row-actions input[type='text'] { width: 6.5rem; }
+  .task-row-actions:focus-within { opacity: 1; }
+  .card:hover .task-row-actions, .card:focus-within .task-row-actions { opacity: 1; }
+  /* A keyboard-only user must never be left without a visible control: the
+     D shortcut focuses the date input, which then stays visible via :focus-within. */
+  @media (pointer: coarse) { .task-row-actions { opacity: 1; } }
+
+  .task-row-subtasks { display: flex; flex-wrap: wrap; gap: .5rem; flex-basis: 100%; border-top: 1px solid rgb(var(--line)); padding-top: .5rem; }
+  .task-row-subtasks > span { display: flex; align-items: center; gap: .25rem; border: 1px solid rgb(var(--line)); border-radius: .375rem; padding: .125rem .5rem; font-size: .75rem; }
+
+  .bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .5rem .75rem; margin-bottom: .75rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); background: rgb(var(--card)); }
+  .bulk-bar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin-left: auto; }
+
+  /* Notes: the empty state is a quiet card, not a full-page hero. */
+  .notes-empty { padding: 1.25rem 1rem; border: 1px dashed rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); }
+  .notes-empty .empty { padding: 1rem 0; }

@@ -55,6 +55,37 @@ Run that after `npm install` (or whenever `npm run test:calc-ui` reports "Chromi
 - `src/renderer/` - the UI (React). Each feature is a file in `src/renderer/src/modules/`
 - `src/shared/types.ts` - types used by all three
 
+## Shared page layout
+
+Every page is built from the pieces in `src/renderer/src/components/`. The rules below are the reference; if a page needs something else, change the rule here first.
+
+**Page width.** Exactly one of two classes on the page's outer `div`:
+
+| Class | Max width | Pages |
+| --- | --- | --- |
+| `.page` | **64rem** (normal) | Review, Daily briefing, Insights, Assistant, Calendar, Logbook, Savings, Habits, Focus, Tools, Calculator, Content, Intelligence, Notes, Tags, Search, Trash, Settings, Expenses |
+| `.page-wide` | **86rem** (data-heavy: boards, grids, wide tables) | Dashboard, Trades, Tasks |
+
+`page-sm` and `page-lg` no longer exist. The old `page-lg` pages are now `.page`; Dashboard, Trades and Tasks (list and board alike) are `.page-wide`.
+
+**Page header (`components/PageHeader.tsx`).** Title on the left, the page's one primary action on the right, **no subtitle**. Explanatory text goes in `help`: a small question-mark icon that opens a popover (keyboard: Enter opens, Escape closes and returns focus). A status badge that belongs to the title (Review's "In progress") goes in `badge`, next to the title. A header may hold a few secondary controls (Review's arrows), but only one primary button.
+
+**Toolbar row (`components/Toolbar.tsx`).** One row directly under the header for view switches and filters: `ToolbarStart` (view tabs, mode switches) on the left, `ToolbarEnd` (search, filters, layout, menus) on the right. `ToolbarSearch` is the standard search field inside the row. It wraps instead of overflowing.
+
+**Segmented control (`components/Segmented.tsx`).** The one style for view switches and pressed/unpressed settings. `kind="tabs"` for switching views (role=tablist), `kind="group"` for a setting (aria-pressed). Arrow keys, Home and End move and select; `count` adds a small trailing number.
+
+**Filter popover (`components/FilterPopover.tsx`).** A **Filters** button with a count badge opens a small panel of selects (plus anything extra, such as a sort order). Active filters are shown as removable chips under the toolbar (`FilterChips`), with a **Clear all**. The Tasks page is the reference use.
+
+**Side detail panel (`components/SidePanel.tsx`).** A right-hand panel that slides in over the page. Escape closes it, focus moves into it on open and returns to what opened it on close, and Tab stays inside. Width `narrow` (26rem) or `wide` (36rem); a `footer` holds its actions.
+
+**Dialogs (`components/ConfirmDialog.tsx`, `components/Modal.tsx`).** `ConfirmDialog` and `PromptDialog` replace every `window.confirm()` and `window.prompt()` (all of them: Tasks' saved-view naming and bulk delete, Focus' project delete). `Modal` is the shared dialog shell: `role=dialog`, `aria-modal`, focus in / Tab trapped / Escape closes / focus returned, with a `size` of `sm`, `md` or `lg`. Enter confirms in a `ConfirmDialog`; a `PromptDialog` never calls back with an empty name.
+
+**Switch rows (`components/SwitchRow.tsx`).** One compact on/off setting: label, one-line description, switch (a real checkbox with `role="switch"`, Space toggles, the whole row is the label). Used for Intelligence's five feature switches and its automation rules instead of the old big checkbox cards.
+
+**Buttons.** One size scale, in `styles.css`: `.btn` (default), `.btn-sm` (toolbars, rows), `.btn-icon` (icon only, always with an `aria-label`), plus `.btn-primary`, `.btn-danger`, `.btn-ghost`. A row uses one size; a page's primary action is `.btn-primary` in the header.
+
+**Focus and Escape.** Every popover, panel and dialog closes on Escape and gives focus back. Popovers close on a click outside.
+
 ## Dashboard and Templates (Phase 6)
 
 **Dashboard** is now a customizable grid of widgets.
