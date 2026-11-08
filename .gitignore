@@ -9,6 +9,8 @@ dist
 .cloud-attachments/
 err.log
 out.log
+# editor-specific settings, not shared
+.vscode/
 
 # calculator layout harness build output (npx vite build --config vite.calch.config.ts)
 .calch
