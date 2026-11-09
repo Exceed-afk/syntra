@@ -74,7 +74,7 @@ Every page is built from the pieces in `src/renderer/src/components/`. The rules
 
 **Segmented control (`components/Segmented.tsx`).** The one style for view switches and pressed/unpressed settings. `kind="tabs"` for switching views (role=tablist), `kind="group"` for a setting (aria-pressed). Arrow keys, Home and End move and select; `count` adds a small trailing number.
 
-**Filter popover (`components/FilterPopover.tsx`).** A **Filters** button with a count badge opens a small panel of selects (plus anything extra, such as a sort order). Active filters are shown as removable chips under the toolbar (`FilterChips`), with a **Clear all**. The Tasks page is the reference use.
+**Filter popover (`components/FilterPopover.tsx`).** A **Filters** button with a count badge opens a small panel of selects (plus anything extra, such as a sort order). Active filters are shown as removable chips under the toolbar (`FilterChips`), with a **Clear all**. The Tasks page is the reference use. `DateRangePopover` (`components/DateRangePopover.tsx`) is the one date-range control: presets (This month, Last 30 days, This year, All time) plus custom from/to; `dateRangeChipOf` gives its removable chip. Trades is the reference use.
 
 **Side detail panel (`components/SidePanel.tsx`).** A right-hand panel that slides in over the page. Escape closes it, focus moves into it on open and returns to what opened it on close, and Tab stays inside. Width `narrow` (26rem) or `wide` (36rem); a `footer` holds its actions.
 
