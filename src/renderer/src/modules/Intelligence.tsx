@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Brain, Trash2, Zap } from 'lucide-react'
+import { Trash2, Zap } from 'lucide-react'
 import { DEFAULT_INTELLIGENCE, type IntelligenceFeatureToggles } from '../../../shared/types'
 import { DEFAULT_AUTOMATIONS, type AutomationSettings, type AutomationActivity } from '../../../shared/automations'
 import {
@@ -11,12 +11,14 @@ import { errMsg } from '../lib/errors'
 const PLATFORM = typeof process !== 'undefined' ? process.platform : 'unknown'
 import { applyFromMain, getCurrentSettings, useSettings } from '../lib/settingsStore'
 import { PageHeader } from '../components/PageHeader'
+import { Toolbar, ToolbarStart } from '../components/Toolbar'
 import { EmptyState } from '../components/EmptyState'
 import { SwitchRow } from '../components/SwitchRow'
 import { Segmented } from '../components/Segmented'
 
 // The three groups of the page, switched with the segmented control under the header.
-// Tabs (not anchors) so the AI provider is one click away without scrolling past everything else.
+// Tabs, not anchors, so the AI provider is one click away instead of below the features and the
+// automations; each tab holds one card, or two on Automations.
 type IntelligenceTab = 'features' | 'automations' | 'assistant'
 const TABS: { id: IntelligenceTab; label: string }[] = [
   { id: 'features', label: 'Features' },
@@ -74,31 +76,29 @@ export function Intelligence() {
     window.api.intelligence.automations.set(patch).then((next) => setAutomations(next)).catch(() => undefined)
   }
 
-  // Group features: everything except AI assistant comes first, then the AI section.
-  const regularFeatures = FEATURES.filter(f => f.key !== 'aiAssistant')
-  const aiFeature = FEATURES.find(f => f.key === 'aiAssistant')!
-
   return (
     <div className="page">
       <PageHeader title="Intelligence" help="Turn individual features on or off. Everything runs on your computer unless you choose Cloud for the assistant." />
 
-      {saveError && <p role="alert" className="text-sm text-neg">{saveError}</p>}
+      {saveError && <p role="alert" className="mb-3 text-sm text-neg">{saveError}</p>}
 
-      {/* The three groups of the page. Tabs, not anchors, so the AI provider is one click
-          away instead of below everything else. Arrow keys and Home/End move (Segmented). */}
-      <div className="mb-5">
-        <Segmented label="Intelligence sections" kind="tabs" value={tab} options={TABS} onChange={setTab} />
-      </div>
+      {/* The three groups of the page, one row under the header (the shared toolbar row). Tabs, not anchors, so the
+          AI provider is one click away; arrow keys and Home/End move between them (Segmented). */}
+      <Toolbar label="Intelligence tabs">
+        <ToolbarStart>
+          <Segmented label="Intelligence sections" kind="tabs" value={tab} options={TABS} onChange={setTab} />
+        </ToolbarStart>
+      </Toolbar>
 
       <div className="space-y-5">
-        {/* ---- Feature toggles ---- */}
+        {/* ---- Feature toggles: the five switches, in one card, in one list ---- */}
         {tab === 'features' && (
         <section className="card card-pad-lg" aria-labelledby="features-title">
           <h2 id="features-title" className="section-title">Features</h2>
           <p className="mt-1 text-sm text-muted">Each feature works on its own. Turn on only what you want to use.</p>
 
-          <div className="mt-2" role="group" aria-label="Feature toggles">
-            {regularFeatures.map(({ key, name, description }) => (
+          <div className="mt-3" role="group" aria-label="Feature toggles">
+            {FEATURES.map(({ key, name, description }) => (
               <SwitchRow
                 key={key}
                 label={name}
@@ -107,16 +107,6 @@ export function Intelligence() {
                 onChange={() => toggle(key)}
               />
             ))}
-          </div>
-
-          {/* AI assistant — only meaningful when an AI provider is available */}
-          <div className="mt-2">
-            <SwitchRow
-              label={aiFeature.name}
-              description={aiFeature.description}
-              checked={features.aiAssistant}
-              onChange={() => toggle('aiAssistant')}
-            />
           </div>
         </section>
         )}
@@ -221,7 +211,14 @@ export function Intelligence() {
         </section>
         )}
 
-        {/* ---- Privacy statement ---- */}
+        {/* ---- AI provider (step 6): the first thing on the Assistant tab ---- */}
+        {tab === 'assistant' && (
+          <AssistantProviderSection
+            features={features}
+          />
+        )}
+
+        {/* ---- Privacy statement: shown on every tab, below that tab's own settings ---- */}
         <section className="card card-pad-lg" aria-labelledby="privacy-title">
           <h2 id="privacy-title" className="section-title flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-pos">
@@ -238,13 +235,6 @@ export function Intelligence() {
             The app does not phone home, does not call any external service, and does not include analytics.
           </p>
         </section>
-
-        {/* ---- AI provider (step 6) ---- */}
-        {tab === 'assistant' && aiFeature.name && (
-          <AssistantProviderSection
-            features={features}
-          />
-        )}
       </div>
     </div>
   )

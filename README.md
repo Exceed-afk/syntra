@@ -80,7 +80,7 @@ Every page is built from the pieces in `src/renderer/src/components/`. The rules
 
 **Dialogs (`components/ConfirmDialog.tsx`, `components/Modal.tsx`).** `ConfirmDialog` and `PromptDialog` replace every `window.confirm()` and `window.prompt()` (all of them: Tasks' saved-view naming and bulk delete, Focus' project delete). `Modal` is the shared dialog shell: `role=dialog`, `aria-modal`, focus in / Tab trapped / Escape closes / focus returned, with a `size` of `sm`, `md` or `lg`. Enter confirms in a `ConfirmDialog`; a `PromptDialog` never calls back with an empty name.
 
-**Switch rows (`components/SwitchRow.tsx`).** One compact on/off setting: label, one-line description, switch (a real checkbox with `role="switch"`, Space toggles, the whole row is the label). Used for Intelligence's five feature switches and its automation rules instead of the old big checkbox cards.
+**Switch rows (`components/SwitchRow.tsx`).** One compact on/off setting: label and its one-line description on the left, the switch on the right (a real checkbox with `role="switch"`, Space toggles, the whole row is the label). A list of them goes inside one card as one block, no gap between the rows. Used for Intelligence's five feature switches and its automation rules instead of the old big checkbox cards.
 
 **Buttons.** One size scale, in `styles.css`: `.btn` (default), `.btn-sm` (toolbars, rows), `.btn-icon` (icon only, always with an `aria-label`), plus `.btn-primary`, `.btn-danger`, `.btn-ghost`. A row uses one size; a page's primary action is `.btn-primary` in the header.
 
@@ -397,6 +397,14 @@ Type a sentence in the command palette (`Ctrl+K`) or the Quick capture window's 
 3. If the proposal is a new shape, extend `QuickAddProposal`, `describeProposal` and `QuickAddPreview` with its fields.
 4. Wire saving in `src/renderer/src/lib/quickAddSave.ts` (one `if (proposal.kind === …)` branch).
 5. Add tests in `tests/quickAdd.ts` — the happy phrase, the ambiguous form, and something that should be rejected.
+
+## Intelligence page
+**Intelligence** (Productivity) switches features on and off and holds the automations and the AI provider. It is the standard `.page` width, with one row of tabs under the header (the shared toolbar row): **Features**, **Automations** and **Assistant** (arrow keys, Home and End move between them). So the AI provider is one click away instead of below everything else, and every tab ends with the same "Your data stays on this computer" card.
+
+- **Features**: the five switches (Daily briefing, Automations, Smart quick-add, Insights, AI assistant) in one card as one compact list: the label on the left, its one-line description under it, and the switch on the right (`SwitchRow`). The whole row is the label, Space toggles it.
+- **Automations**: the rules, then the **Automation activity** list.
+- **Assistant**: the **AI provider** picker (Off / Local model / Cloud), exactly what leaves the computer for each choice, the typed "I understand" confirmation required for Cloud (tied to the address), the address and model fields, and the encrypted API key box.
+- Settings keys, defaults and behaviour are unchanged (`intelligence.features.*`, the automation settings, `assistant.provider`): this is a layout of the same page.
 
 ## AI assistant (step 6)
 The **Assistant** page answers questions about your own data through a chat. **Off by default** — and the Intelligence master toggle ("AI assistant") must be on before the page even appears in the sidebar.

@@ -1094,7 +1094,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .switch-row-block:last-child { border-bottom: 0; }
   .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .625rem .25rem; cursor: pointer; }
   .switch-row.is-disabled { cursor: not-allowed; opacity: .6; }
-  .switch-row-text { min-width: 0; display: flex; flex-direction: column; gap: .125rem; }
+  .switch-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .125rem; }
   .switch-row-label { font-size: .875rem; font-weight: 500; }
   .switch-row-desc { font-size: .75rem; color: rgb(var(--muted)); }
   .switch-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
