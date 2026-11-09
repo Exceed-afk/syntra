@@ -540,6 +540,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .stat-label { display: block; font-size: .8125rem; font-weight: 500; color: rgb(var(--muted)); }
   .stat-value { display: block; margin-top: .375rem; font-size: 1.875rem; line-height: 2.25rem; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
   .stat-sub { display: block; margin-top: .25rem; font-size: .8125rem; color: rgb(var(--muted)); }
+  /* The compact stat tiles (Trades): a little shorter than the default. */
+  .stat-tiles-sm .stat-value { font-size: 1.5rem; line-height: 1.75rem; margin-top: .25rem; }
+  .stat-tiles-sm .stat-sub { margin-top: .125rem; font-size: .75rem; }
 
   /* ---- Review summary card ----
      One metric in charge (value, colour), a secondary line, and a tiny chart or a comparison underneath.
@@ -601,6 +604,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
   .tbl .secondary { color: rgb(var(--muted)); }
   .tbl-wrap { overflow: auto; max-height: calc(100vh - 22rem); min-height: 6rem; border-radius: inherit; scrollbar-gutter: stable; }
+  /* On a data-heavy page (.page-wide) the table cells sit a touch closer, so
+     more rows fit without squeezing anything unreadable. */
+  .page-wide .tbl th, .page-wide .tbl td { padding-inline: .75rem; }
 
   /* Badges always carry a word (or a glyph), never colour alone */
   .badge { display: inline-flex; align-items: center; gap: .25rem; padding: .0625rem .5rem; border-radius: calc(.5rem * var(--rs)); font-size: .75rem; line-height: 1.25rem; font-weight: 500; white-space: nowrap; }
@@ -1046,6 +1052,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .popover-help-text p + p { margin-top: .5rem; }
 
   /* Filter chips (active filters), under the toolbar. */
+  /* Date-range popover: the presets sit in a 2x2 grid so the panel stays small. */
+  .date-presets { display: grid; grid-template-columns: 1fr 1fr; gap: .375rem; }
+
   .filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin: -.25rem 0 .75rem; }
   .filter-chip { display: inline-flex; align-items: center; gap: .25rem; padding: .125rem .25rem .125rem .5rem; border: 1px solid rgb(var(--line)); border-radius: 999px; background: rgb(var(--fg) / .04); font-size: .75rem; }
   .filter-chip button { display: inline-grid; place-items: center; width: 1.125rem; height: 1.125rem; border-radius: 999px; color: rgb(var(--muted)); }
