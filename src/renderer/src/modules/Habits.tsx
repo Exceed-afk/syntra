@@ -46,6 +46,7 @@ import { MilestoneBadge, PerfectWeekMark, WeekStrip, completionState, habitCompl
 import { LogValuePopover } from '../components/LogValuePopover'
 import { DayStatusPopover } from '../components/DayStatusPopover'
 import { PageHeader } from '../components/PageHeader'
+import { Toolbar, ToolbarStart, ToolbarEnd } from '../components/Toolbar'
 import { EmptyState } from '../components/EmptyState'
 import { HabitEditor } from './HabitEditor'
 import { formatDate } from '../lib/dates'
@@ -251,36 +252,40 @@ export function Habits() {
           <Check size={20} strokeWidth={3} />
         </button>
         <button onClick={() => setEditingId(h.id)} className="min-w-0 flex-1 text-left">
-          <div className={`truncate font-medium ${done ? 'text-muted line-through decoration-muted/50' : ''}`}>{h.name}</div>
+          {/* Line 1: the name. Line 2: streak and the 30-day rate as small
+              inline text. The schedule label, the reminder time and the best
+              streak live in the tooltip (and the editor), so every row stays
+              two lines tall no matter how the habit is configured. */}
+          <div
+            title={`${scheduleLabel(h.days)}${h.reminderTime ? ` · reminder at ${h.reminderTime}` : ''} · Best: ${best}`}
+            className={`truncate font-medium ${done ? 'text-muted line-through decoration-muted/50' : ''}`}
+          >
+            {h.name}
+          </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
             <span className="flex items-center gap-1">
               <Flame size={13} className={streak > 0 ? 'warn' : ''} />
               {streak} day streak
             </span>
-            <span>Best: {best}</span>
-            <span>{rate30 === null ? 'No days due yet' : `${Math.round(rate30)}% over 30 days`}</span>
+            <span>{rate30 === null ? 'No days due yet' : `${Math.round(rate30)}% / 30d`}</span>
             {/* The progress of a count/duration habit, like "6 / 10 min". */}
             {logged && <span className="tabular-nums">{logged}</span>}
-            {/* A reminder set on this habit, shown as "08:30" with a bell. */}
-            {h.reminderTime && (
-              <span className="inline-flex items-center gap-1" aria-label={`Reminder at ${h.reminderTime}`}>
-                <Bell size={12} />{h.reminderTime}
-              </span>
-            )}
             {due
-              ? <span>{scheduleLabel(h.days)}</span>
+              ? null
               : <span className="inline-flex items-center gap-1 rounded-full border border-line px-1.5 py-px text-[10px] uppercase tracking-wide">
                 Rest day
               </span>}
           </div>
           {/* The milestone and the perfect-week mark. Both are optional, so a
               habit that has not earned one simply shows nothing here. */}
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <MilestoneBadge streak={streak} />
-            {perfect && (
-              <PerfectWeekMark label={`${progress.done} of ${progress.due} days done`} />
-            )}
-          </div>
+          {(streak >= 7 || perfect) && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <MilestoneBadge streak={streak} />
+              {perfect && (
+                <PerfectWeekMark label={`${progress.done} of ${progress.due} days done`} />
+              )}
+            </div>
+          )}
         </button>
         {/* The dots open the day menu. Only today is checked off with the big circle. */}
         <div className="relative">
@@ -299,55 +304,58 @@ export function Habits() {
 
   return (
     <div className="page">
-      <PageHeader title="Habits" help={active.length === 0 ? 'Small things, done regularly.' : dueToday.length === 0 ? 'Nothing is scheduled today.' : `${doneToday} of ${dueToday.length} due today. Small things, done regularly.`}>
+      <PageHeader
+        title="Habits"
+        help={active.length === 0 ? 'Small things, done regularly.' : dueToday.length === 0 ? 'Nothing is scheduled today.' : `Small things, done regularly.`}
+        badge={active.length > 0 && dueToday.length > 0
+          ? <span className="badge" aria-label={`${doneToday} of ${dueToday.length} habits due today are done`}>{doneToday} of {dueToday.length} due today</span>
+          : undefined}
+      >
         <button className="btn-primary" onClick={() => setEditingId('new')} title="Ctrl+N">
           <Plus size={16} /> New habit
         </button>
       </PageHeader>
 
-      {active.length > 0 && (
-        <div className="card card-pad">
-          {dueToday.length > 0 ? (
-            <>
-              <div className="flex items-baseline justify-between">
-                <div className="text-sm font-medium">
-                  {doneToday === dueToday.length ? 'All done for today. Nicely done.' : `Today: ${doneToday} of ${dueToday.length} due`}
-                </div>
-                <div className="text-xs tabular-nums text-muted">{Math.round((doneToday / dueToday.length) * 100)}%</div>
-              </div>
-              <div className="mt-3"><ProgressBar percent={(doneToday / dueToday.length) * 100} /></div>
-            </>
-          ) : (
-            <div className="text-sm font-medium">Nothing is scheduled today. Enjoy the rest day.</div>
-          )}
+      {/* The old "Today: X of Y due" card is now a slim progress bar only; the
+          count lives in the header badge, so the words appear once. */}
+      {active.length > 0 && dueToday.length > 0 && (
+        <div className="mb-4" role="progressbar"
+          aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((doneToday / dueToday.length) * 100)}
+          aria-label="Today's habits done">
+          <ProgressBar percent={(doneToday / dueToday.length) * 100} />
         </div>
+      )}
+      {active.length > 0 && dueToday.length === 0 && (
+        <p className="mb-4 text-sm text-muted">Nothing is scheduled today. Enjoy the rest day.</p>
       )}
 
       {active.length > 0 && (
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1">
-            <button className="btn-icon" onClick={() => setShownWeek(shiftWeek(shown, -1))}
-              aria-label="Previous week" title="Previous week">
-              <ChevronLeft size={16} />
-            </button>
-            <button className="btn-icon" onClick={() => setShownWeek(shiftWeek(shown, 1))}
-              aria-label="Next week" title="Next week" disabled={isThisWeek}>
-              <ChevronRight size={16} />
-            </button>
-            <span className="ml-1 text-sm font-medium tabular-nums" aria-live="polite">{weekLabel(shown)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isThisWeek && (
-              <button className="btn btn-sm" onClick={() => setShownWeek(null)}>This week</button>
-            )}
+        <Toolbar label="Habits tools">
+          <ToolbarStart>
+            <div className="flex items-center gap-1">
+              <button className="btn-icon" onClick={() => setShownWeek(shiftWeek(shown, -1))}
+                aria-label="Previous week" title="Previous week">
+                <ChevronLeft size={16} />
+              </button>
+              <button className="btn-icon" onClick={() => setShownWeek(shiftWeek(shown, 1))}
+                aria-label="Next week" title="Next week" disabled={isThisWeek}>
+                <ChevronRight size={16} />
+              </button>
+              <span className="ml-1 text-sm font-medium tabular-nums" aria-live="polite">{weekLabel(shown)}</span>
+              {!isThisWeek && (
+                <button className="btn btn-sm ml-2" onClick={() => setShownWeek(null)}>This week</button>
+              )}
+            </div>
+          </ToolbarStart>
+          <ToolbarEnd>
             {/* Groups the list into Morning / Afternoon / Evening / Anytime. */}
             <button className="btn btn-sm" onClick={() => setGroupByTime(!groupByTime)}
               aria-pressed={groupByTime}
               title={groupByTime ? 'Show one flat list' : 'Group the list by time of day'}>
               <Clock size={14} /> {groupByTime ? 'Show one list' : 'Group by time'}
             </button>
-          </div>
-        </div>
+          </ToolbarEnd>
+        </Toolbar>
       )}
 
       {error && <p role="alert" className="mt-4 text-sm text-neg">{error}</p>}
