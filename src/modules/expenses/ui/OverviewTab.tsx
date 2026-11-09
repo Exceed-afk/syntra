@@ -111,13 +111,8 @@ export function OverviewTab({ month, onMonthChange, onOpenTransactions }: {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <MonthPicker month={month} onChange={onMonthChange} nextDisabled={month >= day.slice(0, 7)} />
-        <button className="btn" onClick={onOpenTransactions}>
-          All transactions <ArrowRight size={14} aria-hidden="true" />
-        </button>
-      </div>
-
+      {/* The month stepper and the tabs live in the page toolbar now; this tab
+          keeps no month row of its own. */}
       {error && <FormMessage error={error} />}
 
       {loaded && summary && summary.totalBudget === 0 && summary.spentSoFar === 0 && (
@@ -147,15 +142,24 @@ export function OverviewTab({ month, onMonthChange, onOpenTransactions }: {
           </div>
 
           <section className="card card-pad-lg">
-            <h2 className="section-title">By category</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="section-title whitespace-nowrap">By category</h2>
+              <button className="row-link whitespace-nowrap text-sm" onClick={onOpenTransactions}>
+                View all <ArrowRight size={13} aria-hidden="true" />
+              </button>
+            </div>
             {categoriesWithBudget.length === 0 ? (
               <p className="mt-3 text-sm text-muted">
                 No budgets or spending in {monthLabel(month)} yet. Set a budget in the Budgets tab and it appears here.
               </p>
             ) : (
-              <ul className="mt-4 flex flex-col divide-y divide-line/60">
-                {categoriesWithBudget.map((c) => <CategoryRow key={c.categoryId} row={c} />)}
-              </ul>
+              <>
+                {/* Two columns when the window is wide enough; the rows stay
+                    readable stacked below sm. */}
+                <ul className="mt-4 grid gap-x-8 sm:grid-cols-2">
+                  {categoriesWithBudget.map((c) => <CategoryRow key={c.categoryId} row={c} />)}
+                </ul>
+              </>
             )}
           </section>
 
@@ -231,24 +235,29 @@ function CategoryRow({ row }: { row: CategoryLeftToSpend & { categoryName: strin
   const used = row.spentAmount + row.billsDueAmount
   const pct = usagePercent(used, row.budgetAmount)
   const over = row.leftToSpend < 0
+  // Two lines at most: line 1 is the category and what was spent of the budget,
+  // line 2 is the bar with the "left / over" figure at its right end. The
+  // tooltip repeats it for pointer users; over-budget is text + shape, never
+  // colour alone.
+  const leftLabel = over ? `${fmtCents(-row.leftToSpend)} over` : `${fmtCents(row.leftToSpend)} left`
+  const detail = `Spent ${fmtCents(row.spentAmount)}`
+    + (row.billsDueAmount > 0 ? ` · bills due ${fmtCents(row.billsDueAmount)}` : '')
+    + ` · ${leftLabel} (${pct}%)`
   return (
-    <li className="py-3">
+    <li className="py-3" title={detail}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="text-sm font-medium">{row.categoryName}</span>
+        <span className="text-sm font-medium">
+          {row.categoryName}
+          {over && <span className="badge badge-neg ml-2 align-middle">Over budget</span>}
+        </span>
         <span className="num text-sm">
           <span className={over ? 'text-neg' : 'text-fg'}>{fmtCents(used)}</span>
           <span className="text-muted"> of {fmtCents(row.budgetAmount)}</span>
         </span>
       </div>
-      <div className="mt-2"><ProgressBar percent={pct} tone={over ? 'accent' : 'pos'} /></div>
-      <div className="meta mt-1.5 flex flex-wrap justify-between gap-2">
-        <span>
-          Spent {fmtCents(row.spentAmount)}
-          {row.billsDueAmount > 0 && ` · bills due ${fmtCents(row.billsDueAmount)}`}
-        </span>
-        <span className={over ? 'text-neg' : ''}>
-          {over ? `${fmtCents(-row.leftToSpend)} over` : `${fmtCents(row.leftToSpend)} left`} ({pct}%)
-        </span>
+      <div className="mt-2 flex items-center gap-3">
+        <div className="min-w-0 flex-1"><ProgressBar percent={pct} tone={over ? 'accent' : 'pos'} /></div>
+        <span className={`num shrink-0 text-xs ${over ? 'text-neg' : 'text-muted'}`}>{leftLabel} ({pct}%)</span>
       </div>
     </li>
   )

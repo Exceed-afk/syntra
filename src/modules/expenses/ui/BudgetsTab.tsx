@@ -8,12 +8,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Copy, Target } from 'lucide-react'
 import { EmptyState } from '../../../renderer/src/components/EmptyState'
 import { ProgressBar } from '../../../renderer/src/components/ProgressBar'
+import { Toolbar, ToolbarEnd, ToolbarStart } from '../../../renderer/src/components/Toolbar'
 import { errMsg } from '../../../renderer/src/lib/errors'
 import { today } from '../../../renderer/src/lib/dates'
 import { useRefreshOnCapture } from '../../../renderer/src/lib/dataChanged'
 import type { ExpenseBudget, ExpenseCategory, LeftToSpendResult } from '../service'
 import { centsToInput, fmtCents, monthLabel, parseCents, usagePercent } from './format'
-import { BusyLabel, Field, FormMessage, MonthPicker } from './components'
+import { BusyLabel, Field, FormMessage } from './components'
 
 export function BudgetsTab({ month, onMonthChange }: {
   month: string
@@ -74,12 +75,18 @@ export function BudgetsTab({ month, onMonthChange }: {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <MonthPicker month={month} onChange={onMonthChange} />
-        <button className="btn" onClick={() => void copyLastMonth()} disabled={copying || categories.length === 0}>
-          <BusyLabel busy={copying}><Copy size={15} aria-hidden="true" /> Copy last month</BusyLabel>
-        </button>
-      </div>
+      {/* The month stepper lives in the page toolbar; this row keeps the tab's
+          one action on the right. */}
+      <Toolbar label="Budget actions">
+        <ToolbarStart>
+          <p className="meta">Budgets for <span className="num text-fg">{monthLabel(month)}</span></p>
+        </ToolbarStart>
+        <ToolbarEnd>
+          <button className="btn btn-sm" onClick={() => void copyLastMonth()} disabled={copying || categories.length === 0}>
+            <BusyLabel busy={copying}><Copy size={15} aria-hidden="true" /> Copy last month</BusyLabel>
+          </button>
+        </ToolbarEnd>
+      </Toolbar>
 
       <p className="meta">
         {monthLabel(month)} total: <span className="num text-fg">{fmtCents(totalBudget)}</span> across{' '}

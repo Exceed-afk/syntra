@@ -7,6 +7,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Receipt, Search, Trash2 } from 'lucide-react'
 import { EmptyState } from '../../../renderer/src/components/EmptyState'
+import { Toolbar, ToolbarEnd, ToolbarStart, ToolbarSearch } from '../../../renderer/src/components/Toolbar'
+import { FilterPopover, FilterChips, type ActiveFilterChip } from '../../../renderer/src/components/FilterPopover'
 import { errMsg } from '../../../renderer/src/lib/errors'
 import { today } from '../../../renderer/src/lib/dates'
 import { useRefreshOnCapture } from '../../../renderer/src/lib/dataChanged'
@@ -20,7 +22,7 @@ import {
   monthOf,
   TX_TYPE_LABEL
 } from './format'
-import { BusyLabel, Dialog, Field, FormMessage, MonthPicker } from './components'
+import { BusyLabel, Dialog, Field, FormMessage } from './components'
 
 const TYPE_TONE: Record<ExpenseTxType, string> = {
   expense: 'text-fg',
@@ -106,48 +108,47 @@ export function TransactionsTab({ month, onMonthChange }: {
     }
   }
 
+  // Everything that narrows the list, as removable chips under the toolbar.
+  const activeFilters: ActiveFilterChip[] = [
+    ...(text ? [{ id: 'text', label: `Search: ${text}`, onRemove: () => setText('') }] : []),
+    ...(typeFilter !== 'all' ? [{ id: 'type', label: `Type: ${TX_TYPE_LABEL[typeFilter]}`, onRemove: () => setTypeFilter('all') }] : []),
+    ...(categoryFilter !== 'all'
+      ? [{ id: 'category', label: `Category: ${categoryName(categoryFilter)}`, onRemove: () => setCategoryFilter('all') }]
+      : [])
+  ]
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <MonthPicker month={month} onChange={onMonthChange} />
-        <button className="btn-primary" onClick={() => setEditing('new')} title="Ctrl+N">
-          <Plus size={16} aria-hidden="true" /> Add transaction
-        </button>
-      </div>
+      {/* The month stepper lives in the page toolbar; this row holds search
+          and filters only. Totals follow the visible (filtered) list. */}
+      <Toolbar label="Transaction filters">
+        <ToolbarStart>
+          <ToolbarSearch value={text} onChange={setText} placeholder="Search payee, note, category or tag"
+            label="Search transactions" />
+        </ToolbarStart>
+        <ToolbarEnd>
+          <FilterPopover
+            activeCount={typeFilter !== 'all' || categoryFilter !== 'all' ? 1 + (categoryFilter !== 'all' ? 1 : 0) : 0}
+            onClearAll={() => { setTypeFilter('all'); setCategoryFilter('all') }}
+            filters={[
+              { id: 'type', label: 'Type', value: typeFilter, allLabel: 'All types',
+                onChange: (v) => setTypeFilter(v as 'all' | ExpenseTxType),
+                options: (['expense', 'income', 'transfer'] as ExpenseTxType[]).map((t) => ({ value: t, label: TX_TYPE_LABEL[t] })) },
+              { id: 'category', label: 'Category', value: categoryFilter === 'all' ? '' : String(categoryFilter), allLabel: 'All categories',
+                onChange: (v) => setCategoryFilter(v === '' ? 'all' : Number(v)),
+                options: categories.map((c) => ({ value: String(c.id), label: c.name })) }
+            ]}
+          />
+        </ToolbarEnd>
+      </Toolbar>
 
-      <div className="card card-pad">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="relative min-w-[12rem] flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
-            <input
-              className="field pl-9"
-              placeholder="Search payee, note, category or tag"
-              aria-label="Search transactions"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-          </div>
-          <Field label="Type" className="w-36">
-            <select className="field" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | ExpenseTxType)}>
-              <option value="all">All types</option>
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-              <option value="transfer">Transfer</option>
-            </select>
-          </Field>
-          <Field label="Category" className="w-44">
-            <select className="field" value={String(categoryFilter)} onChange={(e) => setCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-              <option value="all">All categories</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-        </div>
-        <p className="meta mt-3">
-          {monthLabel(month)}: spent <span className="num text-fg">{fmtCents(totals.spent)}</span>, income{' '}
-          <span className="num text-pos">{fmtCents(totals.income)}</span>, transferred{' '}
-          <span className="num text-fg">{fmtCents(totals.transferred)}</span> (transfers are not spending).
-        </p>
-      </div>
+      <FilterChips chips={activeFilters} onClearAll={() => { setText(''); setTypeFilter('all'); setCategoryFilter('all') }} />
+
+      <p className="meta">
+        {monthLabel(month)}: spent <span className="num text-fg">{fmtCents(totals.spent)}</span>, income{' '}
+        <span className="num text-pos">{fmtCents(totals.income)}</span>, transferred{' '}
+        <span className="num text-fg">{fmtCents(totals.transferred)}</span> (transfers are not spending).
+      </p>
 
       {error && <FormMessage error={error} />}
 

@@ -4,14 +4,17 @@
 // It is a module page like every other: it receives ModuleProps and renders
 // inside the app shell. Tab switching is keyboard accessible (roving arrow keys
 // on the tab strip, Home/End jump to the ends).
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ModuleProps } from '../../../renderer/src/lib/navigation'
 import { PageHeader } from '../../../renderer/src/components/PageHeader'
+import { Toolbar, ToolbarEnd, ToolbarStart } from '../../../renderer/src/components/Toolbar'
+import { Segmented } from '../../../renderer/src/components/Segmented'
 import { today } from '../../../renderer/src/lib/dates'
 import { OverviewTab } from './OverviewTab'
 import { TransactionsTab } from './TransactionsTab'
 import { BudgetsTab } from './BudgetsTab'
 import { RecurringTab } from './RecurringTab'
+import { MonthPicker } from './components'
 import { todayMonth } from './format'
 
 export type ExpensesTab = 'overview' | 'transactions' | 'budgets' | 'recurring'
@@ -26,22 +29,6 @@ const TABS: { id: ExpensesTab; label: string }[] = [
 export function ExpensesPage(_props: ModuleProps) {
   const [tab, setTab] = useState<ExpensesTab>('overview')
   const [month, setMonth] = useState(todayMonth(today()))
-  const buttons = useRef<Array<HTMLButtonElement | null>>([])
-
-  // Arrow keys move along the tab strip; Home/End jump to the first/last tab.
-  // Only the arrow keys are prevented, so Tab still leaves the strip normally.
-  const onTabKey = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const last = TABS.length - 1
-    let next: number | null = null
-    if (e.key === 'ArrowRight') next = index === last ? 0 : index + 1
-    else if (e.key === 'ArrowLeft') next = index === 0 ? last : index - 1
-    else if (e.key === 'Home') next = 0
-    else if (e.key === 'End') next = last
-    if (next === null) return
-    e.preventDefault()
-    setTab(TABS[next].id)
-    buttons.current[next]?.focus()
-  }
 
   // Keep the page reachable from the command palette / global keys: Ctrl+1..4
   // inside the page switches tabs, leaving the app's global shortcuts alone.
@@ -66,23 +53,22 @@ export function ExpensesPage(_props: ModuleProps) {
         help="Where your money goes, and how much you can still spend this month. All amounts are kept in whole cents."
       />
 
-      <div className="seg mb-5" role="tablist" aria-label="Expenses views">
-        {TABS.map((t, i) => (
-          <button
-            key={t.id}
-            ref={(el) => { buttons.current[i] = el }}
-            role="tab"
-            id={`expenses-tab-${t.id}`}
-            aria-selected={tab === t.id}
-            aria-controls={`expenses-panel-${t.id}`}
-            tabIndex={tab === t.id ? 0 : -1}
-            onClick={() => setTab(t.id)}
-            onKeyDown={(e) => onTabKey(e, i)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* One toolbar row: the four tabs on the left, the month stepper on the
+          right. Every tab owns the same month, so the stepper travels with it. */}
+      <Toolbar label="Expenses tools">
+        <ToolbarStart>
+          <Segmented
+            label="Expenses views"
+            kind="tabs"
+            value={tab}
+            options={TABS}
+            onChange={(next) => setTab(next)}
+          />
+        </ToolbarStart>
+        <ToolbarEnd>
+          <MonthPicker month={month} onChange={setMonth} nextDisabled={month >= today().slice(0, 7)} />
+        </ToolbarEnd>
+      </Toolbar>
 
       <div role="tabpanel" id={`expenses-panel-${tab}`} aria-labelledby={`expenses-tab-${tab}`} tabIndex={-1}>
         {tab === 'overview' && (

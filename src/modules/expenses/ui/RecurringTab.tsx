@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarClock, Pencil, Plus, Repeat, Trash2 } from 'lucide-react'
 import { EmptyState } from '../../../renderer/src/components/EmptyState'
+import { Toolbar, ToolbarEnd, ToolbarStart } from '../../../renderer/src/components/Toolbar'
 import { errMsg } from '../../../renderer/src/lib/errors'
 import { today } from '../../../renderer/src/lib/dates'
 import { useRefreshOnCapture } from '../../../renderer/src/lib/dataChanged'
@@ -104,20 +105,26 @@ export function RecurringTab({ month }: { month: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="meta">
-          {bills.length === 0 ? 'No recurring bills yet.' : (
-            <>
-              {bills.length} active {bills.length === 1 ? 'bill' : 'bills'} · about{' '}
-              <span className="num text-fg">{fmtCents(totals.monthly)}</span>/month ·{' '}
-              <span className="num text-fg">{fmtCents(totals.yearly)}</span>/year
-            </>
-          )}
-        </p>
-        <button className="btn-primary" onClick={() => setEditing('new')} title="Ctrl+N">
-          <Plus size={16} aria-hidden="true" /> Add bill
-        </button>
-      </div>
+      {/* One toolbar row: the totals on the left, the tab's primary action on
+          the right. The month stepper for the due list lives in the page toolbar. */}
+      <Toolbar label="Recurring bill actions">
+        <ToolbarStart>
+          <p className="meta">
+            {bills.length === 0 ? 'No recurring bills yet.' : (
+              <>
+                {bills.length} active {bills.length === 1 ? 'bill' : 'bills'} · about{' '}
+                <span className="num text-fg">{fmtCents(totals.monthly)}</span>/month ·{' '}
+                <span className="num text-fg">{fmtCents(totals.yearly)}</span>/year
+              </>
+            )}
+          </p>
+        </ToolbarStart>
+        <ToolbarEnd>
+          <button className="btn-primary btn-sm" onClick={() => setEditing('new')} title="Ctrl+N">
+            <Plus size={16} aria-hidden="true" /> Add bill
+          </button>
+        </ToolbarEnd>
+      </Toolbar>
 
       <FormMessage error={error} note={note} />
 
