@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusEvent, MouseEvent } from 'react'
 import { ChevronDown, Moon, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Sun } from 'lucide-react'
 import { TOOLS, type ToolDef } from '../tools'
-import { sidebarLayout, toggleId } from '../../../shared/tools'
+import { PINNED_GROUP_ID as PINNED_GROUP, sidebarLayout, toggleId } from '../../../shared/tools'
 import { getCurrentSettings, useSettings, updateSettings, toggleTheme } from '../lib/settingsStore'
 import { isDark } from '../lib/theme'
 
 export const SIDEBAR_NARROW = '(max-width: 999px)' // below this the sidebar shrinks to icons so the page keeps its room (App.tsx reads it too)
-const PINNED_GROUP = 'pinned' // the id used to remember whether the Pinned section is open
 
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(() => matchMedia(SIDEBAR_NARROW).matches)
@@ -20,15 +19,23 @@ function useNarrow(): boolean {
   return narrow
 }
 
-// A tooltip for the icons-only sidebar. It is drawn at a fixed position next to the icon,
-// because the sidebar itself clips anything that sticks out of it.
+// A tooltip: the tool's full name (and its shortcut) beside the row. Shown in the icons-only rail, where the
+// name is hidden. Every name else fits the full sidebar (tests/design.ts measures it), so there is no second
+// tooltip there; if one is ever needed, a `title` attribute will not do (Chromium does not show it on a hovered
+// button), so draw a tip like this one INSIDE the sidebar, which clips what sticks out of it.
 interface Tip { label: string; hint: string | null; top: number }
 
 // Left navigation, read from the tool registry (tools.ts):
 //  - a "Pinned" section on top (the user's own pins), then one collapsible group per category
 //  - full width with labels, or an icons-only rail (collapse button, Ctrl+B, or automatically in a narrow window)
 // What is pinned, which groups are closed and whether the rail is icons-only are saved in the settings.
-export function Sidebar({ active, onSelect, tools: visible = TOOLS }: { active: string; onSelect: (id: string) => void; tools?: ToolDef[] }) {
+export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinnedOverride }: {
+  active: string
+  onSelect: (id: string) => void
+  tools?: ToolDef[]
+  /** The pinned list to show instead of the saved one (the design preview uses it: ?pinned=trades,habits). */
+  pinned?: string[]
+}) {
   const settings = useSettings()
   const narrow = useNarrow()
   const collapsed = settings.sidebarCollapsed || narrow
@@ -36,7 +43,8 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS }: { active: 
   const navRef = useRef<HTMLElement>(null)
   const [tip, setTip] = useState<Tip | null>(null)
 
-  const layout = useMemo(() => sidebarLayout(visible, settings.pinnedTools), [visible, settings.pinnedTools])
+  const pinnedIdsList = pinnedOverride ?? settings.pinnedTools
+  const layout = useMemo(() => sidebarLayout(visible, pinnedIdsList), [visible, pinnedIdsList])
   const closed = useMemo(() => new Set(settings.sidebarClosedGroups), [settings.sidebarClosedGroups])
   const pinnedIds = new Set(layout.pinned.map((t) => t.id))
 
@@ -137,10 +145,10 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS }: { active: 
         </button>
       </div>
 
-        <div className="sb-nav" onScroll={() => setTip(null)} tabIndex={-1}>
-          {layout.pinned.length > 0 && group(PINNED_GROUP, 'Pinned', layout.pinned)}
-          {layout.groups.map((g) => group(g.id, g.name, g.tools, g.flat))}
-        </div>
+      <div className="sb-nav" onScroll={() => setTip(null)} tabIndex={-1}>
+        {layout.pinned.length > 0 && group(PINNED_GROUP, 'Pinned', layout.pinned, true)}
+        {layout.groups.map((g) => group(g.id, g.name, g.tools, g.flat))}
+      </div>
 
       <div className="sb-foot">
         <button className="sb-item" onClick={toggleTheme} title={collapsed ? undefined : themeLabel} aria-label={themeLabel} {...tipHandlers(dark ? 'Light mode' : 'Dark mode', null)}>

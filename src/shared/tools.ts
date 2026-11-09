@@ -6,16 +6,22 @@ import { LINK_TYPES, type LinkType } from './links'
 const LINKABLE_TYPES: readonly string[] = LINK_TYPES as readonly LinkType[]
 
 // Tool groups, in the order the sidebar shows them. A new tool picks one of these; a new group is one line here.
-// A group with `flat: true` has no heading and cannot be collapsed (used for the start page on its own).
+// A group with `flat: true` has no heading and cannot be collapsed; it is the user's own Pinned list, which has
+// nothing to fold and whose name would be a third heading above the first one. Every other group is labelled
+// and folds, the first one (Overview) included.
 // A group that has no tools yet (Health) is simply not shown until one arrives.
+// The Notes tool lives in the Journal group: ids are saved in settings (sidebarClosedGroups, pinnedTools and the
+// module switches), so an id never changes; only `name` is a label and can.
 export const TOOL_CATEGORIES = [
-  { id: 'overview', name: 'Overview', flat: true },
+  { id: 'overview', name: 'Overview', flat: false },
   { id: 'money', name: 'Money', flat: false },
   { id: 'health', name: 'Health', flat: false },
   { id: 'productivity', name: 'Productivity', flat: false },
   { id: 'notes', name: 'Journal', flat: false },
   { id: 'utilities', name: 'Utilities', flat: false }
 ] as const
+// The Pinned section. It is not a category (nothing can be filed under it), but it is drawn like a group.
+export const PINNED_GROUP_ID = 'pinned'
 export type ToolCategory = (typeof TOOL_CATEGORIES)[number]['id']
 
 // ---------- the module contract (Phase 0) ----------

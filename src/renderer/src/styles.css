@@ -179,22 +179,43 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .opt[aria-pressed='true'] { border-color: rgb(var(--accent)); box-shadow: 0 0 0 1px rgb(var(--accent)); }
   .opt-name { padding: 0 .25rem .125rem; font-size: .8125rem; }
 
-  /* ---- Sidebar (components/Sidebar.tsx) ---- */
+  /* ---- Sidebar (components/Sidebar.tsx) ----
+     15.25rem (it was 14.5rem): that is what "Daily briefing", the longest name, needs with the pin button showing
+     even in the widest font (Mono, about a pixel wider per character than the default); the space left over is
+     not enough for a longer word, so every theme looks the same. tests/sidebar-layout.ts measures every name in
+     the real window at the extreme text sizes, fonts and densities. */
+  /* No flex gap on purpose: a container's `gap` also applies between its last item and the (absent) next one,
+     which would hold the footer a few pixels off the bottom edge. The one gap between the header and the list is
+     paid by the list itself (.sb-nav's margin-top below). */
   .sb {
-    display: flex; flex-direction: column; flex-shrink: 0; width: 14.5rem; gap: .25rem; padding: .75rem; overflow: hidden;
+    display: flex; flex-direction: column; flex-shrink: 0; width: 15.25rem; padding: .75rem; overflow: hidden;
     background: rgb(var(--panel)); border-right: 1px solid rgb(var(--line)); transition: width .18s ease;
   }
+
   .sb[data-collapsed='true'] { width: 4.25rem; }
-  .sb-head { display: flex; align-items: center; gap: .625rem; min-height: 2.5rem; padding: .375rem .375rem .875rem; }
+  .sb-head { display: flex; flex: 0 0 auto; align-items: center; gap: .625rem; min-height: 2.5rem; padding: .375rem .375rem .875rem; }
   .sb[data-collapsed='true'] .sb-head { flex-direction: column; padding: .375rem 0 .75rem; gap: .5rem; }
   .sb-logo {
     flex: none; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; font-size: .875rem; font-weight: 700;
     border-radius: calc(.5rem * var(--rs)); background: rgb(var(--accent)); color: rgb(var(--on-accent));
   }
   .sb-title { flex: 1; min-width: 0; font-size: .875rem; font-weight: 600; line-height: 1.15; letter-spacing: -.01em; }
-  /* The list is as wide as the sidebar (negative margin) so the active marker on the edge is not clipped. */
-  .sb-nav { display: flex; flex: 1; flex-direction: column; gap: .125rem; min-height: 0; margin: 0 -.75rem; padding: 0 .75rem; overflow-x: hidden; overflow-y: auto; }
-  .sb-foot { display: flex; flex-direction: column; gap: .125rem; margin-top: .25rem; padding-top: .5rem; border-top: 1px solid rgb(var(--line)); }
+  /* The list is as wide as the sidebar (negative margin) so the active marker on the edge is not clipped.
+     min-height: 0 lets it shrink and scroll when the window is short; the footer below never scrolls away.
+     `scrollbar-gutter: stable` always reserves the bar's room, so the rows never shift when it appears.
+     Only the vertical axis scrolls: with `overflow-x: hidden` the box would be a scroll container on both
+     axes, and the active marker (right on the left edge, padding 0) would be clipped to a scroll snap.
+     The hint is only faded, never laid out away, so it is never scrolled into view.
+
+     Only the list grows or shrinks (1 1 0: a zero basis, so nothing else is ever shrunk to make room); the header
+     and the footer keep their natural size (0 0 auto). The footer therefore ends exactly on the sidebar's bottom
+     edge and any spare height goes into the list, not below it.
+     The margin-top is the ONE gap between the header and the list; the negative side margins make the list as wide
+     as the sidebar so the active marker on the edge is not clipped (its 3px sit in the sidebar's own padding). */
+  .sb-nav { display: flex; flex: 1 1 0; flex-direction: column; gap: .125rem; min-height: 0; margin: .25rem -.75rem 0; padding: 0 .75rem; overflow-y: auto; scrollbar-gutter: stable; }
+  /* `flex: none` (0 0 auto): with the shorthand's auto basis the column would be allowed to shrink, and its
+     two rows then painted outside a shorter box. */
+  .sb-foot { display: flex; flex: none; flex-direction: column; gap: .125rem; margin-top: .25rem; padding-top: .5rem; border-top: 1px solid rgb(var(--line)); }
   .sb-item {
     position: relative; display: flex; flex: none; align-items: center; gap: .5rem; width: 100%;
     padding: calc(.5rem * var(--d)) .75rem; border-radius: calc(.75rem * var(--rs));
@@ -210,14 +231,18 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     border-radius: 0 3px 3px 0; background: rgb(var(--accent-fg));
   }
   .sb-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* The shortcut hint floats over the right edge on hover, so it never takes room from the label. */
+  /* The shortcut hint floats over the right edge on hover, so it never takes room from the label: on a pinnable
+     row (where the pin button, not the hint, is shown on hover) it is hidden entirely. */
   .sb-kbd {
     position: absolute; right: .5rem; top: 50%; transform: translateY(-50%); padding: .05rem .35rem; pointer-events: none;
     border: 1px solid rgb(var(--line)); border-radius: calc(.25rem * var(--rs)); background: rgb(var(--panel));
     font-size: .6875rem; line-height: 1.1rem; font-weight: 400; color: rgb(var(--muted)); opacity: 0; transition: opacity .15s;
   }
   [data-style='minimal'] .sb-kbd { background: rgb(var(--bg)); }
+  /* The hint is only ever a help: a pinnable row shows its pin button instead (the row is always hovered when
+     the button is visible, so the hint would sit under it). Settings is the one row without a pin button. */
   .sb-item:hover .sb-kbd, .sb-item:focus-visible .sb-kbd { opacity: 1; }
+  .sb-row[data-pinnable='true'] .sb-kbd { display: none; }
   .sb[data-collapsed='true'] .sb-item { justify-content: center; padding-left: 0; padding-right: 0; }
   .sb[data-collapsed='true'] :is(.sb-label, .sb-kbd, .sb-title) { display: none; }
   /* A scrollbar would take room from the 2.75rem icons and push them off-centre once the list is long; the rail still scrolls (wheel, keys, focus). */
@@ -683,8 +708,12 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   /* ---- Sidebar groups, pins and the icons-only tooltip ----
      Colours come only from the theme variables, so every palette and both styles follow. */
   .sb-row { position: relative; flex: none; }
-  .sb-row[data-pinnable='true'] .sb-item { padding-right: 2rem; }
-  .sb-row[data-pinnable='true'] .sb-kbd { right: 2.125rem; }
+  /* The pin button is 1.5rem at .375rem from the edge: 2.125rem keeps the label clear of it. The label's box is
+     then the same for every row (this room is reserved whether or not the pin is showing, so nothing shifts). */
+  .sb-row[data-pinnable='true'] .sb-item { padding-right: 2.125rem; }
+  /* Settings, every group heading and the pin buttons are no longer tab stops (the pin is reached with one key from
+     its tool: see Sidebar.tsx), so a keyboard user's order is group heading, tool, group heading, tool ... and
+     every tool stays one Tab apart, however many there are. */
   .sb-pin {
     position: absolute; right: .375rem; top: 50%; transform: translateY(-50%); display: grid; place-items: center;
     width: 1.5rem; height: 1.5rem; border-radius: calc(.375rem * var(--rs)); color: rgb(var(--muted)); cursor: pointer;
@@ -724,6 +753,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     border: 1px solid rgb(var(--line)); border-radius: calc(.5rem * var(--rs)); background: rgb(var(--card)); color: rgb(var(--fg));
     box-shadow: var(--shadow-pop); font-size: .8125rem; white-space: nowrap; pointer-events: none; animation: tip-in .12s ease-out;
   }
+
 
   /* ---- Command palette (components/CommandPalette.tsx) ----
      Colours come only from the theme variables, so every palette, accent and both styles follow. The backdrop is the

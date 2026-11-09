@@ -2,7 +2,7 @@
 //   npm test
 // (The real registry is checked by the same function every time the app starts.)
 import assert from 'node:assert/strict'
-import { sidebarLayout, toggleId, validateTools, type ToolMeta } from '../src/shared/tools'
+import { sidebarLayout, toggleId, validateTools, TOOL_CATEGORIES, type ToolMeta } from '../src/shared/tools'
 import { normalizeSettings } from '../src/shared/appearance'
 
 let n = 0
@@ -40,6 +40,19 @@ test('shortcuts are a single digit 1-9 (Ctrl+K, B and N are taken)', () => {
 })
 test('the start page cannot be a footer tool', () => bad([tool({ footer: true })], /start page/))
 
+// ---- Group names ----
+test('every sidebar group has a heading and can be collapsed', () => {
+  for (const c of TOOL_CATEGORIES) {
+    assert.ok(c.name.trim().length > 0, `${c.id}: empty name`)
+    assert.equal(c.flat, false, `${c.id}: every group is labelled and foldable`)
+  }
+})
+test('the Notes tool sits in the Journal group, and the group headings are named', () => {
+  const names = Object.fromEntries(TOOL_CATEGORIES.map((c) => [c.id, c.name]))
+  assert.equal(names.overview, 'Overview')
+  assert.equal(names.notes, 'Journal') // the label only: the id stays 'notes' (it is saved in settings)
+})
+
 // ---- Sidebar layout ----
 const t = (id: string, category: ToolMeta['category'], extra: Partial<ToolMeta> = {}): ToolMeta =>
   ({ id, name: id, route: `/${id}`, category, keywords: [], ...extra })
@@ -51,8 +64,9 @@ test('with nothing pinned, tools sit under their categories in category order, e
   assert.deepEqual(l.pinned, [])
   assert.deepEqual(l.groups.map((g) => g.id), ['overview', 'money', 'productivity', 'notes', 'utilities']) // no health: it has no tools
   assert.deepEqual(ids(l.groups[1].tools), ['trades', 'savings'])
-  assert.equal(l.groups[0].flat, true)
+  assert.equal(l.groups[0].flat, false) // the first group is labelled "Overview" like every other heading
   assert.equal(l.groups[1].flat, false)
+  assert.equal(l.groups.find((g) => g.id === 'notes')!.name, 'Journal') // the Notes tool's group heading
   assert.deepEqual(ids(l.footer), ['settings'])
 })
 test('a footer tool is not listed in a group', () => {

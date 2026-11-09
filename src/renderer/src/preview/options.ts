@@ -4,8 +4,9 @@
 // so the preview looks exactly like the app would with these settings. Nothing
 // is written to the settings store: the URL is the only source here.
 import { PALETTES } from '../../../shared/appearance'
-import { DEFAULT_SETTINGS, type Density, type FontChoice, type Radius, type TextSize, type UiStyle } from '../../../shared/types'
+import { DEFAULT_SETTINGS, type Density, type FontChoice, type Radius, type Settings, type TextSize, type UiStyle } from '../../../shared/types'
 import { applyAppearance } from '../lib/theme'
+import { applyFromMain } from '../lib/settingsStore'
 
 export type PreviewMode = 'light' | 'dark'
 
@@ -20,6 +21,8 @@ export interface PreviewOptions {
   size: TextSize
   sidebarCollapsed: boolean
   palette: boolean
+  /** Tool ids to show as pinned; empty means "as saved in the sample data". */
+  pinnedTools: string[]
 }
 
 const DENSITIES = ['compact', 'comfortable', 'spacious'] as const satisfies readonly Density[]
@@ -48,9 +51,13 @@ export function previewOptions(params: URLSearchParams): PreviewOptions {
     radius: pick(params, 'radius', RADII, 'soft'),
     size: pick(params, 'size', SIZES, 'default'),
     sidebarCollapsed: pick(params, 'sidebar', ['open', 'collapsed'] as const, 'open') === 'collapsed',
-    palette: params.get('palette') === '1'
+    palette: params.get('palette') === '1',
+    // ?pinned=trades,habits: the Pinned list without a click (comma-separated tool ids). The sidebar uses these
+    // instead of the sample pins, so the page's own settings load cannot put the sample pins back.
+    pinnedTools: (params.get('pinned') ?? '').split(',').map((s) => s.trim()).filter((s) => /^[a-z][a-z0-9-]*$/.test(s))
   }
-  applyAppearance({
+
+  const settings: Settings = {
     ...DEFAULT_SETTINGS,
     theme: options.mode,
     palette: options.theme,
@@ -60,6 +67,9 @@ export function previewOptions(params: URLSearchParams): PreviewOptions {
     radius: options.radius,
     textSize: options.size,
     sidebarCollapsed: options.sidebarCollapsed
-  })
+  }
+  applyAppearance(settings)
+  // The preview's settings store starts from the URL, not from whatever an earlier page load cached.
+  applyFromMain(settings)
   return options
 }

@@ -14,6 +14,7 @@
 //   ?radius=round        sharp | soft (default) | round
 //   ?size=large          small | default | large
 //   ?sidebar=collapsed   collapsed | open (overrides the window width rule)
+//   ?pinned=trades,habits the Pinned list, without a click (comma-separated tool ids)
 //   ?palette=1           open the command palette
 //
 // Examples:  ?page=tasks&theme=forest&mode=dark
@@ -87,7 +88,10 @@ function PreviewApp() {
   // ?palette=1 opens the command palette on load.
   const [paletteOpen, setPaletteOpen] = useState(options.palette)
   // Subscribed so a theme change in the bar re-renders the page and sidebar.
-  useSettings()
+  const settings = useSettings()
+  // ?pinned=… asked for a Pinned list: it is drawn from the URL, so the page's own settings load (which brings
+  // the sample pins) cannot put them back.
+  const pins = options.pinnedTools.length > 0 ? options.pinnedTools : settings.pinnedTools
 
   const navigate = (where: string): void => {
     const t = findTool(where)
@@ -102,7 +106,7 @@ function PreviewApp() {
     <div className="flex h-full flex-col">
       <PreviewBar page={active} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar active={active} onSelect={navigate} tools={TOOLS} />
+        <Sidebar active={active} onSelect={navigate} tools={TOOLS} pinned={pins} />
         <main tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto focus:outline-none">
           <Page target={target} onTargetHandled={() => setTarget(null)} onOpen={open} onNavigate={navigate} />
         </main>
