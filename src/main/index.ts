@@ -7,6 +7,7 @@ import { runDailyChecksIfNeeded } from './dailyCheck'
 import { collectBackup, currentCounts, restoreBackup } from './backup'
 import { countsOf, parseBackup, tradesToCsv, type BackupFile } from '../shared/backup'
 import { normalizeSettings, resolveTokens } from '../shared/appearance'
+import { ZoomIn, ZoomOut } from '../shared/zoom'
 import { mergeFeatures } from '../shared/intelligence'
 import { MIGRATIONS } from './migrations'
 import { startReminders } from './reminders'
@@ -87,6 +88,30 @@ function broadcastChanged(): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('data:changed')
 }
 
+// Zoom keys. The app never builds a menu, so it keeps Electron's default one: its zoomIn / zoomOut / resetZoom
+// roles bring Ctrl+Shift++ (Ctrl+Plus, a Shift on a US layout), Ctrl+NumpadAdd, Ctrl+-. Ctrl+NumpadSubtract and
+// Ctrl+0. Browsers also zoom on PLAIN Ctrl+=, which users expect, so that one key (and Cmd+= on a Mac) and the
+// numpad keys are taken over here, before the page sees them: the same step and limits the roles use
+// (ZoomIn/ZoomOut in zoom.ts), and preventDefault() so each key press is handled once. Ctrl+Shift++ is left to
+// the menu (the shift check), so it never zooms twice; so are Ctrl+- and Ctrl+0, which the page never needs.
+// The numpad keys are matched on their code alone (with or without Shift: some layouts report numpad '+' as Shift-ed).
+// Typing is untouched: without the modifier nothing happens here, and the keys are only read, never swallowed.
+function handleZoomKeys(contents: Electron.WebContents): void {
+  contents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown' || input.alt) return
+    const primary = process.platform === 'darwin' ? input.meta : input.control // Ctrl on Windows/Linux, Cmd on a Mac
+    const other = process.platform === 'darwin' ? input.control : input.meta
+    if (!primary || other) return
+    const zoom = input.code === 'NumpadAdd' ? ZoomIn
+      : input.code === 'NumpadSubtract' ? ZoomOut
+        : !input.shift && (input.key === '=' || input.key === '+') ? ZoomIn // plain Ctrl+= / Cmd+=, never Ctrl+Shift++
+          : null
+    if (!zoom) return
+    event.preventDefault()
+    contents.setZoomLevel(zoom(contents.getZoomLevel()))
+  })
+}
+
 // The startup purge, kept in one function so the try/catch above stays tiny.
 function purgeOldTrashAtStartup(): void {
   const { trash } = getSettings()
@@ -126,6 +151,7 @@ function createWindow(): void {
     // A Mac always keeps running when its window is closed, as Macs do.
     if (process.platform !== 'darwin' && !keepsRunning()) app.quit()
   })
+  handleZoomKeys(win.webContents)
   win.webContents.setWindowOpenHandler(({ url }) => { if (isWebUrl(url)) shell.openExternal(url); return { action: 'deny' } })
   // The app never navigates away from itself. A web link opens in the browser; anything else is blocked.
   win.webContents.on('will-navigate', (e, url) => {
