@@ -20,10 +20,13 @@ function useNarrow(): boolean {
 }
 
 // A tooltip: the tool's full name (and its shortcut) beside the row. Shown in the icons-only rail, where the
-// name is hidden. Every name else fits the full sidebar (tests/design.ts measures it), so there is no second
-// tooltip there; if one is ever needed, a `title` attribute will not do (Chromium does not show it on a hovered
-// button), so draw a tip like this one INSIDE the sidebar, which clips what sticks out of it.
-interface Tip { label: string; hint: string | null; top: number }
+// name is hidden, and in the full sidebar when the row's name no longer fits (a very large text size with the
+// widest font, or a long pinned name): tests/sidebar-layout.ts measures every name and the labels stay wide
+// enough that this should never happen, but a cut-off name must never be the end of the story. A `title`
+// attribute will not do (Chromium does not show it on a hovered button), so the tip is drawn INSIDE the sidebar,
+// which clips what sticks out of it; there the right edge is already reserved for the pin button (see .sb-row in
+// styles.css), so the full name can be shown without moving the label.
+interface Tip { label: string; hint: string | null; top: number; left: number }
 
 // Left navigation, read from the tool registry (tools.ts):
 //  - a "Pinned" section on top (the user's own pins), then one collapsible group per category
@@ -69,7 +72,8 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinn
   }, [settings.pinnedTools])
   const toggleGroup = (id: string) => updateSettings({ sidebarClosedGroups: toggleId(getCurrentSettings().sidebarClosedGroups, id) })
 
-  // Hover or keyboard focus on an icon shows its name (and shortcut) beside it. Only used in the icons-only rail.
+  // Hover or keyboard focus on a row shows its name (and shortcut) beside it: always in the icons-only rail (the
+  // names are hidden there), and in the full sidebar only when the name is cut off (see showTip).
   const tipHandlers = (label: string, hint: string | null) => ({
     onMouseEnter: (e: MouseEvent<HTMLElement>) => showTip(e.currentTarget, label, hint),
     onFocus: (e: FocusEvent<HTMLElement>) => { if (e.currentTarget.matches(':focus-visible')) showTip(e.currentTarget, label, hint) },
@@ -78,9 +82,13 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinn
   })
   useEffect(() => setTip(null), [collapsed]) // a tip left over from before the rail was opened must not come back with it
   const showTip = (el: HTMLElement, label: string, hint: string | null) => {
-    if (!collapsed) return
+    if (!collapsed) {
+      // Full sidebar: only a name that is actually cut off gets a tip (most rows fit; a tip on every hover is noise).
+      const name = el.querySelector('.sb-label')
+      if (!name || name.scrollWidth <= name.clientWidth + 1) return
+    }
     const r = el.getBoundingClientRect()
-    setTip({ label, hint, top: r.top + r.height / 2 })
+    setTip({ label, hint, top: r.top + r.height / 2, left: r.left + .75 }) // .75rem: the row's own left padding, under the icon
   }
 
   const row = (t: ToolDef) => {
@@ -90,8 +98,8 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinn
     return (
       <div key={t.id} className="sb-row" data-pinnable={pinnable && !collapsed}>
         <button className="sb-item" onClick={() => onSelect(t.id)}
-          // In the full sidebar the native tooltip is the fallback for a name the width still has to truncate;
-          // the icons-only rail shows its own tip instead (see tipHandlers).
+          // The native tooltip is the fallback for a name the width has to cut off; the drawn tip (see showTip)
+          // shows the same name beside the row and is the one the design checks exercise.
           title={collapsed ? undefined : hint ? `${t.name} (${hint})` : t.name}
           aria-label={collapsed ? t.name : undefined} aria-current={t.id === active ? 'page' : undefined}
           aria-keyshortcuts={t.shortcut ? `Control+${t.shortcut}` : undefined}
@@ -158,8 +166,10 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinn
         {layout.footer.map(row)}
       </div>
 
-      {collapsed && tip && (
-        <div className="sb-tip" role="tooltip" style={{ top: tip.top, left: (navRef.current?.getBoundingClientRect().right ?? 0) + 8 }}>
+      {tip && (
+        <div className={collapsed ? 'sb-tip' : 'sb-tip sb-tip-in'} role="tooltip" style={collapsed
+          ? { top: tip.top, left: (navRef.current?.getBoundingClientRect().right ?? 0) + 8 }
+          : { top: tip.top, left: tip.left }}>
           {tip.label}{tip.hint && <kbd className="kbd">{tip.hint}</kbd>}
         </div>
       )}

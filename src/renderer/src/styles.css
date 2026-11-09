@@ -245,10 +245,15 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .sb-row[data-pinnable='true'] .sb-kbd { display: none; }
   .sb[data-collapsed='true'] .sb-item { justify-content: center; padding-left: 0; padding-right: 0; }
   .sb[data-collapsed='true'] :is(.sb-label, .sb-kbd, .sb-title) { display: none; }
+  /* The list's scrollbar is the app-wide thin one (the `*` rule at the top of this file: `thin`, theme tokens, a
+     brighter hover). It is painted over the list's own padding, never beside it, so it takes no width from a
+     label: |::-webkit-scrollbar| is 12px, which is exactly the list's right padding (.75rem), so the bar rides
+     inside that padding and the rows keep their full width with or without it. The gutter is reserved as well, so
+     nothing moves when it appears or goes. */
+  .sb-nav::-webkit-scrollbar { width: .75rem; }
   /* A scrollbar would take room from the 2.75rem icons and push them off-centre once the list is long; the rail still scrolls (wheel, keys, focus). */
   .sb[data-collapsed='true'] .sb-nav { scrollbar-width: none; }
-  /* The sidebar list keeps its own scrolling rules (see .sb-nav above); only its scrollbar is styled, and it now
-     follows the app-wide scrollbar style at the top of this file (same tokens, same hover state). */
+  .sb[data-collapsed='true'] .sb-nav::-webkit-scrollbar { width: 0; }
 
   /* Classic minimal: the sidebar sits flush with the page, and the active page is shown by the edge marker and weight only. */
   [data-style='minimal'] .sb { background: rgb(var(--bg)); }
@@ -256,17 +261,14 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
 
   /* ================= Shared page primitives (0.10) =================
      Every page uses these, so the whole app reads as one product. All spacing follows Density (--d). */
-  .page { width: 100%; max-width: 64rem; margin: 0 auto; padding: calc(2rem * var(--d)) calc(2.5rem * var(--d)) calc(3rem * var(--d)); animation: fade-up .18s ease-out; }
-  .page-sm { max-width: 48rem; } .page-lg { max-width: 76rem; }
-  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: calc(1.5rem * var(--d)); }
+  .page { width: 100%; max-width: 64rem; margin-inline: auto; padding: calc(2rem * var(--d)) calc(2.5rem * var(--d)) calc(3rem * var(--d)); animation: fade-up .18s ease-out; }
+  .page-sm { max-width: 48rem; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: calc(1.25rem * var(--d)); }
   /* A page name is 28px bold; the small letter-spacing keeps long titles from feeling loose. */
   .page-title { font-size: 1.75rem; line-height: 2.125rem; font-weight: 650; letter-spacing: -.025em; }
   .page-sub { margin-top: .125rem; font-size: .875rem; color: rgb(var(--muted)); }
-  .page-actions { display: flex; flex-shrink: 0; align-items: center; gap: .5rem; }
   @media (max-width: 639px) {
     .page { padding: 1.25rem 1rem 2rem; }
-    .page-head { flex-direction: column; align-items: stretch; }
-    .page-actions { justify-content: space-between; flex-wrap: wrap; }
     .page-title { font-size: 1.5rem; line-height: 1.875rem; }
   }
 
@@ -759,6 +761,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     border: 1px solid rgb(var(--line)); border-radius: calc(.5rem * var(--rs)); background: rgb(var(--card)); color: rgb(var(--fg));
     box-shadow: var(--shadow-pop); font-size: .8125rem; white-space: nowrap; pointer-events: none; animation: tip-in .12s ease-out;
   }
+  /* The full sidebar's tip: it sits at the row's own left edge, on the row's middle, inside the sidebar (which
+     clips it). The rail's tip keeps the upward shift, so it is centred on the icon it points at. */
+  .sb-tip-in { transform: none; }
 
 
   /* ---- Command palette (components/CommandPalette.tsx) ----
@@ -1011,12 +1016,12 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
      ("Shared page layout").
      --------------------------------------------------------------------------- */
 
-  /* Page width: .page is the normal width; .page-wide is for data-heavy pages. */
-  .page { width: 100%; max-width: 64rem; margin-inline: auto; padding: 1.5rem 1.5rem 3rem; }
+  /* Page width: .page is the normal width; .page-wide is for data-heavy pages. Both are defined once, in
+     "Shared page primitives" below (a second `.page` here used to override its padding and drop its spacing). */
   .page-wide { width: 100%; max-width: 86rem; margin-inline: auto; padding: 1.5rem 1.5rem 3rem; }
 
   /* Header: title + badge + help on the left, actions on the right. One line. */
-  .page-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; flex-wrap: wrap; }
   .page-head-title { display: flex; align-items: center; gap: .5rem; min-width: 0; }
   .page-head-title .page-title { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .page-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }

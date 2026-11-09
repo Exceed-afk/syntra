@@ -28,6 +28,10 @@ const os = require('node:os')
 const { join, resolve } = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { app, BrowserWindow, protocol, net, screen } = require('electron')
+// The one list of palettes, read from the text of appearance.ts (this file is CommonJS; the app is TypeScript):
+// the `palette({` call that opens each entry, then the first `id: '…'` that follows it.
+const PALETTE_SOURCE = require('node:fs').readFileSync(resolve('src/shared/appearance.ts'), 'utf8')
+const PALETTES = [...PALETTE_SOURCE.matchAll(/palette\(\{([\s\S]*?)id: '([a-z-]+)'/g)].map((m) => m[2])
 
 const OUT = resolve('.ui-audit')
 const PREVIEW = resolve('.preview')
@@ -48,13 +52,28 @@ const looks = {
   mono: { theme: 'default', mode: 'light', width: 1200, height: 800, font: 'mono' },
   'large-mono': { theme: 'default', mode: 'light', width: 1200, height: 800, size: 'large', font: 'mono' },
   spacious: { theme: 'default', mode: 'light', width: 1200, height: 800, density: 'spacious' },
+  'small-mono': { theme: 'default', mode: 'light', width: 1200, height: 800, size: 'small', font: 'mono' },
+  'mono-spacious': { theme: 'default', mode: 'light', width: 1200, height: 800, font: 'mono', density: 'spacious' },
   minimal: { theme: 'default', mode: 'light', width: 1200, height: 800, style: 'minimal' },
   // Other window sizes: 1440 (widest check), 900 x 600 (the smallest the app allows), 1024 x 600, and the rail.
   wide: { theme: 'default', mode: 'light', width: 1440, height: 800 },
   short: { theme: 'default', mode: 'light', width: 1200, height: 600 },
   'short-narrow': { theme: 'default', mode: 'light', width: 1024, height: 600 },
   min: { theme: 'default', mode: 'light', width: 900, height: 600 },
-  collapsed: { theme: 'default', mode: 'light', width: 1200, height: 800, sidebar: 'collapsed' }
+  collapsed: { theme: 'default', mode: 'light', width: 1200, height: 800, sidebar: 'collapsed' },
+  // Every theme, light and dark, at the default look: a name must fit whatever the palette. One look per palette
+  // (13) and per mode, all generated, so a new palette is checked by existing rather than by adding a line here.
+  ...Object.fromEntries(PALETTES.flatMap((id) => [
+    [`palette-${id}-light`, { theme: id, mode: 'light', width: 1200, height: 800 }],
+    [`palette-${id}-dark`, { theme: id, mode: 'dark', width: 1200, height: 800 }]
+  ])),
+  // The window sizes the sidebar was asked to hold up at: 700 / 1024 / 1280 wide, 600 and 800 high.
+  'w1280-h600': { theme: 'default', mode: 'light', width: 1280, height: 600 },
+  'w1280-h800': { theme: 'default', mode: 'light', width: 1280, height: 800 },
+  'w1024-h800': { theme: 'default', mode: 'light', width: 1024, height: 800 },
+  'w1024-h600': { theme: 'default', mode: 'light', width: 1024, height: 600 },
+  'w700-h800': { theme: 'default', mode: 'light', width: 700, height: 800 },
+  'w700-h600': { theme: 'default', mode: 'light', width: 700, height: 600 }
 }
 
 const summaryFile = join(OUT, `sidebar-measure-${LOOK}.json`)
@@ -96,7 +115,10 @@ app.commandLine.appendSwitch('disable-gpu')
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 
 // Runs in the measured page. Every label is measured against a hidden TWIN laid out freely (its whole text, never
-// the clipped box); the list's scrolling and the footer's position come from the live boxes.
+// the clipped box); the list's scrolling and the footer's position come from the live boxes. It also reads the
+// keyboard facts (tab stops, the list as the one focusable scroller, the pin buttons), whether the shortcut hint
+// sits on a name, and whether scrolling the list reaches the Utilities group. The answer is ONE file, written by
+// finish(): the page's result has no pin probe in it, so nothing here writes to a file that finish() overwrites.
 const PAGE_SCRIPT = (width, height) => `(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   for (let i = 0; i < 50 && !document.querySelector('.sb-nav .sb-item'); i++) await sleep(100)
@@ -137,6 +159,48 @@ const PAGE_SCRIPT = (width, height) => `(async () => {
   const nav = document.querySelector('.sb-nav')
   const foot = document.querySelector('.sb-foot')
   const sb = document.querySelector('.sb')
+
+  // Tab order, the list's scrolling and the pin buttons (the checks below read these).
+  const visible = (el) => el.getClientRects().length > 0
+  const tabStops = [...document.querySelectorAll('.sb button')].filter(visible)
+  const order = [...document.querySelectorAll('.sb .sb-item, .sb .sb-group-head')].filter(visible)
+  // The shortcut hint: it must not sit on the name. Every row with a shortcut is hovered in turn (a pinnable row
+  // hides the hint, so only Settings, which has no pin, keeps it on screen) and the hint's box is compared.
+  let hintOverName = []
+  const hoverStyle = document.createElement('style')
+  hoverStyle.textContent = '.measure-hover .sb-kbd { opacity: 1 !important; }'
+  document.head.appendChild(hoverStyle)
+  for (const item of document.querySelectorAll('.sb-nav .sb-item, .sb-foot .sb-item')) {
+    const label = item.querySelector('.sb-label')
+    if (!label) continue
+    item.classList.add('measure-hover')
+    const kbd = item.querySelector('.sb-kbd')
+    const shown = kbd && getComputedStyle(kbd).display !== 'none' && kbd.getBoundingClientRect().width > 0
+    if (shown) {
+      const l = label.getBoundingClientRect()
+      const t = document.createElement('span')
+      t.className = label.className
+      t.textContent = label.textContent
+      t.style.cssText = 'position:fixed;left:-10000px;top:0;white-space:nowrap'
+      document.body.appendChild(t)
+      const textEnd = l.left + t.getBoundingClientRect().width
+      t.remove()
+      if (textEnd > kbd.getBoundingClientRect().left) hintOverName.push(label.textContent)
+    }
+    item.classList.remove('measure-hover')
+  }
+  hoverStyle.remove()
+  // The Utilities group is reachable: scroll the list to its end and read its last row against the list's box.
+  nav.scrollTop = nav.scrollHeight
+  await sleep(60)
+  const navBox = nav.getBoundingClientRect()
+  const utilHead = [...document.querySelectorAll('.sb-group-head')].find((h) => h.textContent.trim().startsWith('Utilities'))
+  const lastRow = [...document.querySelectorAll('.sb-nav .sb-row')].pop()
+  const lastBox = lastRow ? lastRow.getBoundingClientRect() : null
+  const utilitiesReachable = !!utilHead && utilHead.getBoundingClientRect().top >= navBox.top - 1 && !!lastBox && lastBox.bottom <= navBox.bottom + 1
+  nav.scrollTop = 0
+  await sleep(40)
+
   // Keyboard focus on a row is what shows its pin button (:focus-within); see PIN_PROBE below.
   const pinRow = document.querySelector('.sb-nav .sb-row[data-pinnable="true"]')
   if (pinRow) pinRow.querySelector('.sb-item').focus()
@@ -147,6 +211,15 @@ const PAGE_SCRIPT = (width, height) => `(async () => {
     collapsed: sb.dataset.collapsed,
     sidebarW: sb.getBoundingClientRect().width,
     nav: { clientH: nav.clientHeight, scrollH: nav.scrollHeight, gutter: getComputedStyle(nav).scrollbarGutter },
+    // The list is the one focusable scroller among the sidebar's controls; the rest are ordinary buttons.
+    scrollerFocusable: nav.tabIndex === -1 && getComputedStyle(nav).overflowY === 'auto' && getComputedStyle(nav).minHeight === '0px',
+    tabStops: tabStops.length,
+    // The controls, in DOM (= Tab) order: headings and tool rows only, so a heading comes before its rows.
+    order: order.map((el) => el.classList.contains('sb-group-head') ? el.textContent.trim() : (el.querySelector('.sb-label') || {}).textContent).slice(0, 8),
+    utilitiesReachable,
+    hintOverName,
+    // How many rows have a pin button at all (each is reachable with Tab, see Sidebar.tsx).
+    pins: [...document.querySelectorAll('.sb-nav .sb-pin')].length,
     footBottom: foot.getBoundingClientRect().bottom,
     // The app area the sidebar fills (below the real window's frame and title bar): the footer must end there.
     appBottom: sb.parentElement.getBoundingClientRect().bottom,
@@ -210,6 +283,8 @@ app.whenReady().then(async () => {
       nav: `${result.nav.clientH}/${result.nav.scrollH}`, gutter: result.nav.gutter,
       footerBottom: Math.round(result.footBottom),
       tightest: tightest ? `${tightest.name} ${tightest.slack}px` : null, contentBottom: Math.round(result.contentBottom),
+      scrollerFocusable: result.scrollerFocusable, tabStops: result.tabStops, utilitiesReachable: result.utilitiesReachable, order: result.order,
+      hintOverName: result.hintOverName, pins: result.pins,
       clipped: all.filter((r) => r.slack < 0).map((r) => r.name),
       names: all.map((r) => r.name),
       pin

@@ -18,17 +18,17 @@ New entries are marked **(new)**. This keeps your existing sidebar groups and on
 
 | Group | Items |
 | --- | --- |
-| Top level | Dashboard (customizable), Review, Daily briefing, Insights, Assistant, Calendar |
+| Overview (top level) | Dashboard (customizable), Review, Daily briefing, Insights, Assistant, Calendar |
 | Money | Trades, Savings, **Expenses (new)** |
 | Productivity | Habits, Tasks, **Focus (new)**, **Content (new)**, Intelligence |
-| Notes | Logbook, **Notes (new)** |
+| Journal | Logbook, **Notes (new)** |
 | Utilities | **Tools (new)**, **Tags (new)**, **Trash (new)**, Search |
 | Bottom | Dark mode, Settings (gains Templates and Modules sections) |
 
 Placement reasoning:
 
 - **Expenses** is one page with tabs (Overview, Transactions, Budgets, Recurring), so Money grows by one item, not four.
-- **Tags** and **Trash** span every tool, so they sit in Utilities rather than inside Notes.
+- **Tags** and **Trash** span every tool, so they sit in Utilities rather than inside the Journal group (which is where the Notes tool itself lives).
 - **Tools** is a single hub page. The seven small tools are tabs inside it, which avoids flooding the sidebar.
 - **Templates** are managed in Settings, but picked from the "New" menu inside each tool.
 - **Content** is optional. Add a Settings > Modules toggle so any module can be hidden and the sidebar stays clean.
@@ -150,7 +150,7 @@ Notes on ordering:
 
 **Done when.** You can log an expense in under five seconds from Quick capture, set a budget, see the left-to-spend number change, mark a bill paid from the Calendar, and move leftover money into a Savings goal. Budget and recurring math have unit tests.
 
-## 7. Phase 2: Notes and the Tags page (Notes)
+## 7. Phase 2: Notes and the Tags page (Journal)
 
 **Goal.** A home for undated material: ideas, reference, checklists, meeting notes. Logbook stays the dated journal.
 

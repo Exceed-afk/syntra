@@ -9,7 +9,11 @@
 //   - the list scrolls when it is taller than the window and always keeps the scrollbar's room, so rows never shift;
 //   - the footer (Dark mode, Settings) ends on the app area's bottom edge, so it never scrolls away;
 //   - the pin button of a focused row receives the pointer (it is not faded out under it);
-//   - the icons-only rail still lays out and keeps the same scrolling rules.
+//   - the icons-only rail still lays out and keeps the same scrolling rules;
+//   - every theme, light and dark, fits the same names (the look names come from PALETTES in appearance.ts);
+//   - the list scrolls and keeps the footer down at 1280 / 1024 / 700 wide and 600 / 800 high;
+//   - the list is the one scrolling box, the Utilities group is reached by scrolling it, every pinnable row has its
+//     pin button, and the shortcut hint never sits on a name.
 //
 // It skips (with a message) only when the measurement cannot run at all: no Electron installed, or no preview build
 // that can be made. A window that was asked to measure and answers with an error is a FAILURE, never a skip.
@@ -56,6 +60,11 @@ interface Answer {
   clipped: string[]
   names: string[]
   pin: { focused: boolean; row?: string; opacity?: string; hitIsPin?: boolean }
+  scrollerFocusable: boolean
+  tabStops: number
+  utilitiesReachable: boolean
+  hintOverName: string[]
+  pins: number
 }
 interface Rows {
   rows: { name: string; box: number; text: number; slack: number; current: boolean }[]
@@ -84,7 +93,8 @@ const px = (pair: string) => pair.split('/').map(Number)
 // ---- every name fits, with the pin button's room ----
 // Each row keeps the pin's room whether or not the pin is showing, so the label box is the same in every state:
 // at rest, hovered with the pin, with the shortcut hint, and on the active row. One measurement covers them all.
-const EXTREMES = ['default', 'small', 'large', 'mono', 'large-mono', 'spacious', 'minimal']
+// (small-mono and mono-spacious sit the two multipliers that add room against the one that does not.)
+const EXTREMES = ['default', 'small', 'large', 'mono', 'large-mono', 'spacious', 'minimal', 'small-mono', 'mono-spacious']
 for (const name of EXTREMES) {
   const { a, rows } = look(name, [], true)
   assert.deepEqual(a.clipped, [], `${name}: these names do not fit their row`)
@@ -103,15 +113,29 @@ for (const name of EXTREMES) {
   ok(`${name} (pinned): the active row's own name fits (${active[0].name}, ${active[0].slack}px spare)`)
 }
 
+// ---- every theme, light and dark ----
+// The look names are generated from PALETTES (appearance.ts), so a new palette is measured by existing, not by
+// adding a line here. The script refuses a look it does not know, so a palette missing from it fails loudly.
+const palettes = [...readFileSync(join(root, 'src/shared/appearance.ts'), 'utf8').matchAll(/palette\(\{([\s\S]*?)id: '([a-z-]+)'/g)].map((m) => m[2])
+assert.ok(palettes.length >= 13, `the palette list was read (${palettes.length} palettes)`)
+for (const palette of palettes) {
+  for (const mode of ['light', 'dark']) {
+    const name = `palette-${palette}-${mode}`
+    const { a } = look(name)
+    assert.deepEqual(a.clipped, [], `${name}: these names do not fit their row`)
+    ok(`${name}: every tool name fits (tightest: ${a.tightest})`)
+  }
+}
+
 // ---- scrolling, the footer, and the scrollbar's stable room ----
-for (const name of ['default', 'wide', 'short', 'short-narrow', 'min']) {
-  // At 900px wide the sidebar is the icons-only rail, whose names are hidden.
-  const { a } = look(name, [], false, name !== 'min')
+// 1280 / 1024 / 700 wide at 600 and 800 high, plus the widest window and the 900 x 600 minimum.
+for (const name of ['w1280-h800', 'w1280-h600', 'w1024-h800', 'w1024-h600', 'w700-h800', 'w700-h600', 'default', 'wide', 'short', 'short-narrow', 'min']) {
+  // At 700px and 900px wide the sidebar is the icons-only rail (the app's own 999px rule), whose names are hidden.
+  const { a } = look(name, [], false, !name.startsWith('w700') && name !== 'min')
   const [visible, content] = px(a.nav)
   const atRail = a.collapsed === 'true'
-  if (name === 'min') {
-    // The window is 900px wide: the sidebar is the icons-only rail there, by the app's own 999px rule.
-    assert.equal(atRail, true, 'min: the icons-only rail at 900px')
+  if (name === 'min' || name.startsWith('w700')) {
+    assert.equal(atRail, true, `${name}: the icons-only rail`)
   } else {
     assert.equal(atRail, false, `${name}: the full sidebar`)
   }
@@ -120,10 +144,23 @@ for (const name of ['default', 'wide', 'short', 'short-narrow', 'min']) {
   // with the list scrolling above it: it can never be pushed off-screen or scrolled away.
   assert.equal(a.footerBottom, a.contentBottom, `${name}: the footer ends where the sidebar's content ends (${a.footerBottom} vs ${a.contentBottom})`)
   assert.ok(visible > 100 && visible < a.appBottom, `${name}: the list keeps its own height (${visible}px)`)
-  // The full list (21 tools under 6 headings) is taller than any of these windows, so it scrolls; the footer is
-  // below the scrolling list and does not move.
-  assert.ok(content > visible, `${name}: a list taller than the window scrolls (${content} > ${visible})`)
-  ok(`${name}: ${a.width}x${a.height}, list ${visible}/${content}px, footer at the bottom, scrollbar room kept`)
+  // A short window scrolls the list; a tall one (1440 x 800) shows it whole. Either way the footer is
+  // below the list and does not move.
+  if (atRail) assert.ok(content > visible, `${name}: a list taller than the window scrolls (${content} > ${visible})`)
+  else assert.ok(content >= visible - 40, `${name}: the list is never cut without scrolling (${content} vs ${visible})`)
+  ok(`${name}: ${a.width}x${a.height}${atRail ? ' (rail)' : ''}, list ${visible}/${content}px, footer at the bottom, scrollbar room kept`)
+}
+
+// ---- keyboard: the list scrolls on its own, and the Utilities group is reachable by scrolling ----
+for (const name of ['default', 'short', 'w1024-h600']) {
+  const { a } = look(name)
+  assert.equal(a.scrollerFocusable, true, `${name}: the list is the scrolling box (overflow-y auto, min-height 0, reachable with Tab)`)
+  if (name !== 'default') assert.ok(px(a.nav)[1] > px(a.nav)[0], `${name}: the list is taller than its box, so it scrolls`)
+  assert.ok(a.tabStops > 15, `${name}: the headings and tools are tab stops (${a.tabStops})`)
+  assert.equal(a.pins, a.names.length - 1, `${name}: every pinnable row has its pin button (${a.pins} pins: all but Settings)`)
+  assert.deepEqual(a.hintOverName, [], `${name}: the shortcut hint never sits on a name`)
+  assert.equal(a.utilitiesReachable, true, `${name}: scrolling the list reaches the Utilities group`)
+  ok(`${name}: list scrolls on its own, Utilities reachable, ${a.tabStops} tab stops, hints clear of the names`)
 }
 
 // ---- rows do not shift when the scrollbar appears ----
