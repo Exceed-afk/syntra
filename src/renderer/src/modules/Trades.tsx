@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRefreshOnCapture } from '../lib/dataChanged'
-import { CandlestickChart, Plus, Search } from 'lucide-react'
+import { CandlestickChart, Plus } from 'lucide-react'
 import type { Direction, Trade, TradeFilter, TradeMeta } from '../../../shared/types'
 import { computeStats } from '../../../shared/trades'
-import { formatDate } from '../lib/dates'
+import { formatDate, today } from '../lib/dates'
 import { fmtNum, fmtPnl, pnlColor } from '../lib/format'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { Pnl } from '../components/Pnl'
+import { Toolbar, ToolbarStart, ToolbarEnd, ToolbarSearch } from '../components/Toolbar'
+import { FilterPopover, FilterChips, type ActiveFilterChip } from '../components/FilterPopover'
+import { DateRangePopover, dateRangeChipOf, type DateRangeValue } from '../components/DateRangePopover'
 import type { ModuleProps } from '../lib/navigation'
 import { TradeEditor } from './TradeEditor'
 import { TagChip } from '../components/TagChip'
@@ -16,18 +19,43 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
   const [trades, setTrades] = useState<Trade[]>([])
   const [meta, setMeta] = useState<TradeMeta>({ assets: [], tags: [] })
   const [filter, setFilter] = useState<TradeFilter>({})
+  const [range, setRange] = useState<DateRangeValue>({ preset: 'all' })
   const [editing, setEditing] = useState<Trade | 'new' | null>(null)
   const [loaded, setLoaded] = useState(false)
 
-  const hasFilter = Boolean(filter.text || filter.tag || filter.direction || filter.from || filter.to)
-  const setF = (patch: TradeFilter) => setFilter({ ...filter, ...patch })
+  // The date range presets feed the from/to the query already understands; the
+  // filter itself never changes shape, so saved settings and the API are safe.
+  const rangeDates: Pick<TradeFilter, 'from' | 'to'> = useMemo(() => {
+    const t = today()
+    const [y, m, d] = t.split('-').map(Number)
+    if (range.preset === 'this-month') return { from: new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10) }
+    if (range.preset === 'last-30') return { from: new Date(Date.UTC(y, m - 1, d - 29)).toISOString().slice(0, 10) }
+    if (range.preset === 'this-year') return { from: `${y}-01-01` }
+    if (range.preset === 'custom') return { from: range.from, to: range.to }
+    return {}
+  }, [range])
+  const effectiveFilter: TradeFilter = useMemo(() => ({ ...filter, ...rangeDates }), [filter, rangeDates])
+
+  const hasFilter = Boolean(filter.text || filter.tag || filter.direction || range.preset !== 'all')
+  const setF = (patch: Partial<TradeFilter>) => setFilter({ ...filter, ...patch })
+
+  // Everything that narrows the list, as removable chips under the toolbar.
+  const rangeChip = dateRangeChipOf(range, setRange)
+  const activeFilters: ActiveFilterChip[] = [
+    ...(filter.text ? [{ id: 'text', label: `Search: ${filter.text}`, onRemove: () => setF({ text: undefined }) }] : []),
+    ...(filter.direction ? [{ id: 'direction', label: `Direction: ${filter.direction}`, onRemove: () => setF({ direction: undefined }) }] : []),
+    ...(filter.tag ? [{ id: 'tag', label: `Tag: #${filter.tag}`, onRemove: () => setF({ tag: undefined }) }] : []),
+    ...(rangeChip ? [{ id: 'range', label: rangeChip.label, onRemove: rangeChip.onRemove }] : [])
+  ]
+  const chips = activeFilters
+  const clearAll = () => { setFilter({}); setRange({ preset: 'all' }) }
   // Stats follow the filters, so you can see e.g. your win rate on one asset.
   const stats = useMemo(() => computeStats(trades), [trades])
 
   const refresh = useCallback(async () => {
-    const [t, m] = await Promise.all([window.api.trades.list(filter), window.api.trades.meta()])
+    const [t, m] = await Promise.all([window.api.trades.list(effectiveFilter), window.api.trades.meta()])
     setTrades(t); setMeta(m); setLoaded(true)
-  }, [filter])
+  }, [effectiveFilter])
 
   useEffect(() => {
     const id = setTimeout(refresh, 150)
@@ -66,7 +94,7 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
       </PageHeader>
 
       {stats.total > 0 && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 stat-tiles-sm">
           {card('Total P&L', fmtPnl(stats.totalPnl), `after ${fmtNum(stats.totalFees)} in fees`, pnlColor(stats.totalPnl))}
           {card('Win rate', stats.winRate === null ? '-' : `${stats.winRate.toFixed(0)}%`, `${stats.wins} wins, ${stats.losses} losses`)}
           {card('Closed trades', String(stats.closed), `${stats.open} still open`)}
@@ -76,31 +104,31 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[12rem] flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input className="field pl-9" placeholder="Search asset or notes" value={filter.text ?? ''}
-            onChange={(e) => setF({ text: e.target.value })} />
-        </div>
-        <select className="field w-32" value={filter.direction ?? ''} aria-label="Filter by direction"
-          onChange={(e) => setF({ direction: (e.target.value || undefined) as Direction | undefined })}>
-          <option value="">Long + short</option>
-          <option value="long">Long</option>
-          <option value="short">Short</option>
-        </select>
-        <select className="field w-40" value={filter.tag ?? ''} aria-label="Filter by tag"
-          onChange={(e) => setF({ tag: e.target.value || undefined })}>
-          <option value="">All tags</option>
-          {meta.tags.map((t) => <option key={t.tag} value={t.tag}>#{t.tag} ({t.count})</option>)}
-        </select>
-        <input type="date" className="field w-40" aria-label="From date" value={filter.from ?? ''}
-          onChange={(e) => setF({ from: e.target.value || undefined })} />
-        <input type="date" className="field w-40" aria-label="To date" value={filter.to ?? ''}
-          onChange={(e) => setF({ to: e.target.value || undefined })} />
-        {hasFilter && <button className="btn" onClick={() => setFilter({})}>Clear</button>}
-      </div>
+      <Toolbar label="Trades filters">
+        <ToolbarStart>
+          <ToolbarSearch value={filter.text ?? ''} onChange={(v) => setF({ text: v })}
+            placeholder="Search asset or notes" label="Search asset or notes" />
+        </ToolbarStart>
+        <ToolbarEnd>
+          <FilterPopover
+            activeCount={activeFilters.length}
+            onClearAll={clearAll}
+            filters={[
+              { id: 'direction', label: 'Direction', value: filter.direction ?? '', allLabel: 'Long + short',
+                onChange: (v) => setF({ direction: (v || undefined) as Direction | undefined }),
+                options: [{ value: 'long', label: 'Long' }, { value: 'short', label: 'Short' }] },
+              { id: 'tag', label: 'Tag', value: filter.tag ?? '', allLabel: 'All tags', onChange: (v) => setF({ tag: v || undefined }),
+                options: meta.tags.map((t) => ({ value: t.tag, label: `#${t.tag} (${t.count})` })) }
+            ]}
+          />
+          <DateRangePopover value={range} onChange={setRange} label="Trades date range" />
+        </ToolbarEnd>
+      </Toolbar>
 
-      <div className="mt-6">
+      {/* 4. Active filters as removable chips under the toolbar. */}
+      <FilterChips chips={chips} onClearAll={clearAll} />
+
+      <div className="mt-4">
         {loaded && trades.length === 0 && (hasFilter ? (
           <EmptyState title="No trades match these filters" text="Try a different asset or clear the filters."
             action={<button className="btn mt-4" onClick={() => setFilter({})}>Clear filters</button>} />
