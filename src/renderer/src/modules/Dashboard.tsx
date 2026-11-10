@@ -301,7 +301,9 @@ export function Dashboard({ onOpen, onNavigate }: ModuleProps) {
 
       {editing && toAdd.length > 0 && (
         <section className="mt-4" aria-label="Widgets you can add">
-          <h2 className="section-title"><Plus size={15} /> Available widgets</h2>
+          <div className="card-head">
+            <h2 className="card-head-title"><span className="card-head-icon"><Plus size={15} /></span>Available widgets</h2>
+          </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {toAdd.map((w) => <button key={w.id} className="btn btn-sm" onClick={() => add(w.id)}><Plus size={12} aria-hidden="true" /> {w.title}</button>)}
           </div>
@@ -315,7 +317,7 @@ export function Dashboard({ onOpen, onNavigate }: ModuleProps) {
 function WidgetLoading({ title }: { title: string }) {
   return (
     <div className="card card-pad-sm">
-      <div className="section-title flex items-center gap-2 text-sm">{title}</div>
+      <div className="card-head-title text-sm">{title}</div>
       <div className="mt-3 flex flex-col gap-2" aria-hidden="true">
         <div className="h-6 w-1/3 rounded bg-fg/10" />
         <div className="h-2 w-full rounded bg-fg/10" />
