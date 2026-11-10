@@ -40,7 +40,9 @@ export function Briefing({ onNavigate, onOpen }: ModuleProps) {
         <div className="mt-5 flex flex-col gap-4" aria-live="polite">
           {data.changes.length > 0 && (
             <section className="card card-pad" aria-label="Since you last opened">
-              <h2 className="section-title"><Zap size={15} /> Since you last opened</h2>
+              <div className="card-head">
+                <h2 className="card-head-title"><span className="card-head-icon"><Zap size={15} /></span>Since you last opened</h2>
+              </div>
               <ul className="mt-3 flex flex-col gap-1">
                 {data.changes.map((c, i) => <li key={i} className="text-sm">{c.text}</li>)}
               </ul>
@@ -76,9 +78,9 @@ function Section({ title, icon, onOpen, openLabel, children }: {
 }) {
   return (
     <section className="card card-pad">
-      <div className="flex items-center justify-between">
-        <h2 className="section-title">{icon} {title}</h2>
-        <button className="section-link" onClick={onOpen}>{openLabel} <ChevronRight size={12} /></button>
+      <div className="card-head">
+        <h2 className="card-head-title"><span className="card-head-icon">{icon}</span>{title}</h2>
+        <button className="card-link" onClick={onOpen}>{openLabel} <ChevronRight size={12} /></button>
       </div>
       <div className="mt-3">{children}</div>
     </section>
@@ -98,9 +100,9 @@ function WeeklySection({ briefing, onSaved }: { briefing: DailyBriefing; onSaved
   ].join('\n')
   return (
     <section className="card card-pad" aria-label="Last week">
-      <div className="flex items-center justify-between">
-        <h2 className="section-title"><Sunrise size={15} /> Last week</h2>
-        <button className="section-link" onClick={() => setWriting(true)}><Save size={12} /> Save to Logbook</button>
+      <div className="card-head">
+        <h2 className="card-head-title"><span className="card-head-icon"><Sunrise size={15} /></span>Last week</h2>
+        <button className="card-link" onClick={() => setWriting(true)}><Save size={12} /> Save to Logbook</button>
       </div>
       <ul className="mt-3 flex flex-col gap-1">
         {week.lines.map((line, i) => <li key={i} className="text-sm">{line.text}</li>)}
@@ -118,7 +120,9 @@ function AutomationsSection({ briefing, onNavigate }: { briefing: DailyBriefing;
   if (briefing.staleOverdueTasks.length === 0 && briefing.automations.length === 0) return null
   return (
     <section className="card card-pad" aria-label="From your automations">
-      <h2 className="section-title"><Zap size={15} /> From your automations</h2>
+      <div className="card-head">
+        <h2 className="card-head-title"><span className="card-head-icon"><Zap size={15} /></span>From your automations</h2>
+      </div>
       {briefing.staleOverdueTasks.length > 0 && (
         <div className="mt-2">
           <div className="text-sm">{briefing.staleOverdueTasks.length} task{briefing.staleOverdueTasks.length === 1 ? ' has' : 's have'} been overdue a while:</div>
@@ -127,7 +131,7 @@ function AutomationsSection({ briefing, onNavigate }: { briefing: DailyBriefing;
               <li key={t.id} className="text-sm text-muted">"{t.title}" — {t.daysOverdue} days overdue</li>
             ))}
           </ul>
-          <button className="section-link mt-1" onClick={() => onNavigate('tasks')}>Open tasks <ChevronRight size={12} /></button>
+          <div className="mt-1"><button className="card-link" onClick={() => onNavigate('tasks')}>Open tasks <ChevronRight size={12} /></button></div>
         </div>
       )}
       {briefing.automations.length > 0 && (
