@@ -27,9 +27,9 @@ const MAX_CONTENT = 3
 
 function Head({ icon: Icon, title, action, editMode }: { icon: typeof Timer; title: string; action: () => void; editMode: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="section-title"><Icon size={15} /> {title}</h2>
-      {!editMode && <button className="section-link" onClick={action}>Open <ChevronRight size={12} /></button>}
+    <div className="card-head">
+      <h2 className="card-head-title"><span className="card-head-icon"><Icon size={15} /></span>{title}</h2>
+      {!editMode && <button className="card-link" onClick={action}>Open <ChevronRight size={12} /></button>}
     </div>
   )
 }

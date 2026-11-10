@@ -34,9 +34,9 @@ function Row({ onClick, editMode, children, label }: { onClick: () => void; edit
 // "View all" in the card head; hidden while editing.
 function Head({ icon: Icon, title, action, editMode }: { icon: typeof Wallet; title: string; action: () => void; editMode: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="section-title"><Icon size={15} /> {title}</h2>
-      {!editMode && <button className="section-link" onClick={action}>View all <ChevronRight size={12} /></button>}
+    <div className="card-head">
+      <h2 className="card-head-title"><span className="card-head-icon"><Icon size={15} /></span>{title}</h2>
+      {!editMode && <button className="card-link" onClick={action}>View all <ChevronRight size={12} /></button>}
     </div>
   )
 }
@@ -206,7 +206,7 @@ export function SavingsGoalsWidget({ editMode, onNavigate, onOpen }: WidgetProps
                   )
                 })}
                 {more > 0 && !editMode && (
-                  <button className="section-link" onClick={() => onNavigate('savings')}>+ {more} more {more === 1 ? 'goal' : 'goals'}</button>
+                  <button className="card-link" onClick={() => onNavigate('savings')}>+ {more} more {more === 1 ? 'goal' : 'goals'}</button>
                 )}
               </div>
             )}
