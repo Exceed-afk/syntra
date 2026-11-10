@@ -39,3 +39,14 @@
   - **Worker harness**: all three workers are spawned/correlated/terminated by `src/renderer/src/modules/Calculator/workers/harness.ts`; never spawn a bare `Worker` elsewhere in the calculator.
   - **Never edit an existing migration** in `src/main/migrations.ts` — append a new one; `user_version` tracks what has run.
   - **Regenerating docs**: `npm run gen:calc-docs` rebuilds `docs/calculator-functions.md` from the registry (do not hand-edit it).
+
+## Safety rules (always)
+
+- Before you start, run `git status`. If there are uncommitted changes, stop and tell me.
+- Commit after each finished part, staging files by name (no `git add -A`).
+- NEVER run git checkout, git restore, git reset or git clean on files you did not create in this pass.
+- NEVER edit with scripts, perl or regex find-and-replace. Hand edits only, one file at a time.
+- All files must be saved as UTF-8 without BOM.
+- Do NOT touch my real app data folder (%APPDATA%\Feeblest's Everything). Do NOT start Electron. Use the browser preview harness and tests only.
+- When you finish, stop any server you started.
+- If something goes wrong, stop and report. Do not try to repair it.
