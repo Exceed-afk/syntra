@@ -17,6 +17,8 @@ import {
 } from '../../../shared/tools-math'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
+import { Toolbar, ToolbarStart, ToolbarEnd } from '../components/Toolbar'
+import { Segmented } from '../components/Segmented'
 import { Dialog, Field, FormMessage } from '../components/EditorBits'
 import { TagInput } from '../components/TagInput'
 import { fmtAmount } from '../lib/format'
@@ -87,39 +89,21 @@ export function Tools(_props: ModuleProps) {
 
   return (
     <div className="page">
-      <PageHeader title="Tools" help="Small offline tools that work while everything else is closed: a loan calculator, a stopwatch, scratchpads and snippets." />
+      <PageHeader title="Tools" help="Small offline tools that work while everything else is closed: a loan calculator, a stopwatch, scratchpads and snippets. Pinned tools sit first in the strip." />
 
-      <div className="seg mb-5" role="tablist" aria-label="Tools">
-        {ordered.map((t, i) => {
-          const Icon = t.icon
-          const isPinned = hubPinned.includes(`tools:${t.id}`)
-          return (
-            <button
-              key={t.id}
-              id={`tools-tab-${t.id}`}
-              role="tab"
-              aria-selected={tab === t.id}
-              aria-controls={`tools-panel-${t.id}`}
-              tabIndex={tab === t.id ? 0 : -1}
-              onClick={() => setTab(t.id)}
-              onKeyDown={(e) => onTabKey(e, i)}
-              className="inline-flex items-center gap-1.5"
-            >
-              <Icon size={14} aria-hidden="true" />
-              {t.label}
-              {isPinned && <Pin size={10} className="text-accent" aria-label="Pinned" />}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="mb-4 flex items-center gap-2">
-        <button className="btn btn-sm" onClick={() => togglePin(tab)} aria-pressed={hubPinned.includes(`tools:${tab}`)}>
-          {hubPinned.includes(`tools:${tab}`) ? <PinOff size={13} aria-hidden="true" /> : <Pin size={13} aria-hidden="true" />}
-          {hubPinned.includes(`tools:${tab}`) ? 'Unpin this tool' : 'Pin this tool'}
-        </button>
-        <span className="meta">Pinned tools sit first in the strip.</span>
-      </div>
+      <Toolbar label="Tools">
+        <ToolbarStart>
+          <Segmented label="Tools" kind="tabs" value={tab} onChange={setTab}
+            options={ordered.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))} />
+        </ToolbarStart>
+        <ToolbarEnd>
+          <button className="btn-icon" onClick={() => togglePin(tab)} aria-pressed={hubPinned.includes(`tools:${tab}`)}
+            title={hubPinned.includes(`tools:${tab}`) ? 'Unpin this tool. Pinned tools sit first in the strip.' : 'Pin this tool. Pinned tools sit first in the strip.'}
+            aria-label={hubPinned.includes(`tools:${tab}`) ? 'Unpin this tool' : 'Pin this tool'}>
+            {hubPinned.includes(`tools:${tab}`) ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />}
+          </button>
+        </ToolbarEnd>
+      </Toolbar>
 
       <div role="tabpanel" id={`tools-panel-${tab}`} aria-labelledby={`tools-tab-${tab}`}>
         {tab === 'loan' && <LoanTool />}
@@ -174,7 +158,7 @@ function LoanTool() {
     <div className="space-y-5">
       {error && <FormMessage error={error} />}
 
-      <div className="grid gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <section className="card card-pad-lg space-y-3">
           <h2 className="section-title">Loan calculator</h2>
           <Field label="Principal"><input className="field num" inputMode="decimal" value={principal} onChange={(e) => { setPrincipal(e.target.value); setError('') }} /></Field>
@@ -217,15 +201,14 @@ function LoanTool() {
                 </p>
               )}
 
-              <div className="flex items-center gap-2">
-                <button className="btn btn-sm" onClick={async () => { setCopied(await copyToClipboard(summaryText)); setTimeout(() => setCopied(false), 2000) }}>
-                  {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                  {copied ? 'Copied' : 'Copy summary'}
-                </button>
-                <span className="meta">Copy the numbers to paste anywhere.</span>
-              </div>
-
               <div className="card overflow-hidden">
+                <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+                  <h3 className="section-title">Amortization schedule</h3>
+                  <button className="btn btn-sm" onClick={async () => { setCopied(await copyToClipboard(summaryText)); setTimeout(() => setCopied(false), 2000) }}>
+                    {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                    {copied ? 'Copied' : 'Copy summary'}
+                  </button>
+                </div>
                 <div className="max-h-[24rem] overflow-y-auto">
                   <table className="tbl">
                     <caption className="sr-only">Amortization schedule</caption>
