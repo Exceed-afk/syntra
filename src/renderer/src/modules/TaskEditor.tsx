@@ -4,6 +4,7 @@ import type { Task, TaskInput, TaskPriority, TaskRecurrence, TaskStatus } from '
 import { taskInputProblems, TASK_FIELD_ORDER, type TaskField } from '../../../shared/tasks'
 import { errMsg } from '../lib/errors'
 import { TagInput, addTag } from '../components/TagInput'
+import { findHashtags } from '../../../shared/markdown'
 import { LinkedItems } from '../components/LinkedItems'
 
 interface Props { task: Task | null; onClose: () => void; onSaved: () => void }
@@ -203,7 +204,20 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
 
               <label className="flex flex-col text-xs text-muted">Notes
                 <textarea id="task-notes" className="field mt-1 min-h-20 resize-y" value={notes}
-                  onChange={(e) => { setNotes(e.target.value); setSaveError('') }} />
+                  onChange={(e) => {
+                    const next = e.target.value
+                    const previousHashtags = findHashtags(notes)
+                    const nextHashtags = findHashtags(next)
+                    const removed = new Set(previousHashtags.filter((t) => !nextHashtags.includes(t)))
+                    setTags((prev) => {
+                      const kept = prev.filter((t) => !removed.has(t))
+                      const out = [...kept]
+                      for (const t of nextHashtags) if (!out.includes(t)) out.push(t)
+                      return out
+                    })
+                    setNotes(next)
+                    setSaveError('')
+                  }} />
               </label>
 
               <label className="flex flex-col text-xs text-muted">Subtasks (one per line; prefix [x] for done)

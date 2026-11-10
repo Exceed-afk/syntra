@@ -4,6 +4,7 @@ import { MOODS, type LogEntry, type Mood } from '../../../shared/types'
 import { MOOD_STYLE } from '../lib/moods'
 import { today } from '../lib/dates'
 import { TagInput, addTag } from '../components/TagInput'
+import { findHashtags } from '../../../shared/markdown'
 import { LinkedItems } from '../components/LinkedItems'
 import { noteUndoableDelete } from '../lib/undo'
 import { errMsg } from '../lib/errors'
@@ -113,7 +114,19 @@ export function EntryEditor({ entry, knownTags, onSaved, onClose, initialTitle, 
 
         <label className="flex min-h-[10rem] flex-1 flex-col text-xs text-muted">Entry
           <textarea className="field mt-1 flex-1 resize-none leading-relaxed" value={body}
-            placeholder="Write freely..." onChange={(e) => setBody(e.target.value)} />
+            placeholder="Write freely..." onChange={(e) => {
+              const next = e.target.value
+              const previousHashtags = findHashtags(body)
+              const nextHashtags = findHashtags(next)
+              const removed = new Set(previousHashtags.filter((t) => !nextHashtags.includes(t)))
+              setTags((prev) => {
+                const kept = prev.filter((t) => !removed.has(t))
+                const out = [...kept]
+                for (const t of nextHashtags) if (!out.includes(t)) out.push(t)
+                return out
+              })
+              setBody(next)
+            }} />
         </label>
 
         {error && <p className="text-sm text-neg">{error}</p>}

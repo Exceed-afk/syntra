@@ -1,11 +1,12 @@
 import type { KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { TagChip } from './TagChip'
+import { normalizeTagName } from '../../../shared/tags'
 
 // Adds one typed tag to a list ("#Work " -> "work"), skipping blanks and duplicates.
 // Editors call this at save time too, so a half-typed tag is never lost.
 export const addTag = (tags: string[], raw: string): string[] => {
-  const t = raw.trim().toLowerCase().replace(/^#+/, '')
+  const t = normalizeTagName(raw)
   return !t || tags.includes(t) ? tags : [...tags, t]
 }
 

@@ -10,6 +10,7 @@
 // priorities are all handled here.
 import { addDays, weekdayOf } from './habits'
 import type { TaskRecurrence, TxKind } from './types'
+import { normalizeTagName, normalizeTags } from './tags'
 
 // ---------- what one sentence can become ----------
 
@@ -106,12 +107,13 @@ const PATTERNS: Pattern[] = [
       if (!rest) return null
       const rec = parseRecurrence(rest)
       if (!rec) return null
-      const title = rest.replace(rec.matched, '').replace(/\s+/g, ' ').trim()
+      const tags = [...rest.matchAll(/#([\p{L}\p{N}][\p{L}\p{N}_/-]*)/gu)].map((m) => normalizeTagName(m[1])).filter(Boolean)
+      const title = rest.replace(rec.matched, '').replace(/#[\p{L}\p{N}][\p{L}\p{N}_/-]*/gu, ' ').replace(/\s+/g, ' ').trim()
       if (!title) return { ok: false, error: 'Give the task a name, e.g. "task pay rent every month on the 1st".' }
       return {
         ok: true,
         parse: {
-          proposal: { kind: 'task', title, dueDate: rec.dueDate, dueTime: null, priority: 'medium', project: null, tags: [], recurrence: rec.recurrence },
+          proposal: { kind: 'task', title, dueDate: rec.dueDate, dueTime: null, priority: 'medium', project: null, tags: normalizeTags(tags), recurrence: rec.recurrence },
           confidence: 'high',
           matchedPattern: 'task-recurring'
         }
@@ -131,7 +133,7 @@ const PATTERNS: Pattern[] = [
       return {
         ok: true,
         parse: {
-          proposal: { kind: 'task', title, dueDate, dueTime, priority, project, tags, recurrence: null },
+          proposal: { kind: 'task', title, dueDate, dueTime, priority, project, tags: normalizeTags(tags), recurrence: null },
           confidence: matched.date || matched.priority ? 'high' : 'medium',
           matchedPattern: 'task'
         }
@@ -246,8 +248,8 @@ export function parseTaskBits(rest: string, today: string): {
     project = (projectMatch[1] ?? projectMatch[2] ?? projectMatch[3] ?? projectMatch[4] ?? projectMatch[0].slice(1)).trim()
     working = working.replace(projectMatch[0], ' ')
   }
-  const tags = [...working.matchAll(/#([a-z0-9][a-z0-9_-]*)/gi)].map((match) => match[1].toLowerCase())
-  working = working.replace(/#[a-z0-9][a-z0-9_-]*/gi, ' ')
+  const tags = [...working.matchAll(/#([\p{L}\p{N}][\p{L}\p{N}_/-]*)/gu)].map((match) => normalizeTagName(match[1])).filter(Boolean)
+  working = working.replace(/#[\p{L}\p{N}][\p{L}\p{N}_/-]*/gu, ' ')
   const pm = /\b(high|medium|low)(?:\s+priority)?\b|\bpriority\s+(?:high|medium|low)\b/i.exec(working)
   if (pm) {
     const word = /high|medium|low/i.exec(pm[0])![0].toLowerCase()

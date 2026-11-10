@@ -399,7 +399,14 @@ function NoteEditor({ note, mode, knownTags, onSaved, onDeleted, onOpenNote, onN
               className="field mt-1 min-h-[22rem] flex-1 resize-y font-mono text-sm leading-relaxed"
               value={draft.body}
               placeholder="# Heading&#10;&#10;Text, **bold**, `code`, - lists, - [ ] checklists&#10;Link to another note with [[Its title]]."
-              onChange={(e) => update({ body: e.target.value, tags: mergeBodyTags(draft.tags, findHashtags(e.target.value)) })}
+              onChange={(e) => {
+                const nextBody = e.target.value
+                const previousHashtags = findHashtags(draft.body)
+                const nextHashtags = findHashtags(nextBody)
+                const removed = new Set(previousHashtags.filter((t) => !nextHashtags.includes(t)))
+                const kept = draft.tags.filter((t) => !removed.has(t))
+                update({ body: nextBody, tags: mergeBodyTags(kept, nextHashtags) })
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Tab') {
                   e.preventDefault()

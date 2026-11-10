@@ -6,6 +6,8 @@
 // live rows only, so totals, tags and streaks never count trashed entries.
 import type Database from 'better-sqlite3'
 import { cleanTags, escapeLike, isDate, searchWhere } from './util'
+import { findHashtags } from '../shared/markdownText'
+import { normalizeTags } from '../shared/tags'
 import type { ParsedQuery } from '../shared/search'
 import { AUTOMATION_TAG_CLEAN } from '../shared/automations'
 import { logStreak } from '../shared/dashboard'
@@ -63,7 +65,7 @@ function prepare(input: LogEntryInput) {
     title: input.title.trim() || 'Untitled',
     body: input.body,
     mood: input.mood,
-    tags: JSON.stringify(cleanTags(input.tags))
+    tags: JSON.stringify(normalizeTags([...(input.tags ?? []), ...findHashtags(input.body ?? '')]))
   }
 }
 
@@ -84,7 +86,7 @@ export function createEntry(db: Database.Database, input: LogEntryInput): LogEnt
   indexOne(db, 'logbook', entry.id)
   // Journal entry saved (automation event). Fires only for USER-written entries:
   // automation drafts carry the #automation tag and skip their own trigger — loop prevention.
-  if (!cleanTags(input.tags).includes(AUTOMATION_TAG_CLEAN)) {
+  if (!entry.tags.includes(AUTOMATION_TAG_CLEAN)) {
     emitAutomation(db, 'journal-entry-saved', `entry:${entry.id}`, { entryId: entry.id })
     // Announce the new entry on the event bus (see events.ts), so other
     // modules - like habits - can react WITHOUT this file importing them.

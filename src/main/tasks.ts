@@ -15,6 +15,7 @@
 import type Database from 'better-sqlite3'
 import { filterTasks, localTaskDay, nextTaskDate, nextTaskDateAfter, resolveOccurrences, TASK_FIELD_ORDER, taskInputProblems } from '../shared/tasks'
 import { cleanTags, localDate } from './util'
+import { findHashtags } from '../shared/markdownText'
 import { newBatchId, nowIso, restoreByWhere, trashByWhere } from './repo'
 import { emitAutomation } from './automations'
 import { indexOne, removeOne } from './searchIndex'
@@ -150,7 +151,7 @@ function normalize(input: TaskInput) {
   const subtasks = input.subtasks.map((s) => ({ title: s.title.trim(), done: Boolean(s.done) })).filter((s) => s.title)
   return {
     title, notes: input.notes, status: input.status, priority: input.priority, dueDate: input.dueDate,
-    dueTime: input.dueTime ?? null, project: input.project?.trim() || null, tags: cleanTags(input.tags), position: 0, subtasks,
+    dueTime: input.dueTime ?? null, project: input.project?.trim() || null, tags: cleanTags([...(input.tags ?? []), ...findHashtags(input.notes ?? '')]), position: 0, subtasks,
     recurrenceRule: input.recurrenceRule, recurrenceNext: input.recurrenceNext ?? null
   }
 }
