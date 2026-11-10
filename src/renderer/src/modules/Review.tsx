@@ -116,7 +116,7 @@ export function Review({ onOpen, onNavigate }: ModuleProps) { // eslint-disable-
             prevLabel={`Previous ${word}`} nextLabel={`Next ${word}`} />
           {/* Always rendered, so stepping between periods never moves the controls beside it. */}
           <button className={`btn btn-sm ${isCurrent ? 'invisible' : ''}`} onClick={() => setAnchor(now)} disabled={isCurrent}
-            aria-hidden={isCurrent}>This {word}</button>
+            tabIndex={isCurrent ? -1 : undefined} aria-hidden={isCurrent}>This {word}</button>
         </ToolbarStart>
       </Toolbar>
     </>
