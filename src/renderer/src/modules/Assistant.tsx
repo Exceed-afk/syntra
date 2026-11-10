@@ -84,20 +84,20 @@ export function Assistant() {
         <>
           {settings.provider === 'cloud' && !settings.cloudConfirmed && (
             <section className="card card-pad mt-5" aria-live="polite">
-              <h2 className="section-title">Confirmation needed</h2>
+              <div className="card-head"><h2 className="card-head-title">Confirmation needed</h2></div>
               <p className="mt-2 text-sm">Cloud mode sends each question to {settings.cloudUrl}. Confirm it on the Intelligence page before anything can be asked here.</p>
             </section>
           )}
           {settings.provider === 'cloud' && settings.cloudConfirmed && keyState && keyStateLabel(keyState) === 'none' && (
             <section className="card card-pad mt-5">
-              <h2 className="section-title">No API key yet</h2>
+              <div className="card-head"><h2 className="card-head-title">No API key yet</h2></div>
               <p className="mt-2 text-sm">Paste your key on the Intelligence page. It is stored with the operating system's encryption (never in plain text), never shown again, and never included in exports. Automatic local database copies may contain the encrypted blob.</p>
               {keyState && !keyState.encryptionOk && <p className="mt-2 text-sm text-neg">This system cannot encrypt keys right now, so none can be saved.</p>}
             </section>
           )}
           {settings.provider === 'cloud' && keyState && keyStateLabel(keyState) === 'unreadable' && (
             <section className="card card-pad mt-5" role="alert">
-              <h2 className="section-title">API key unavailable</h2>
+              <div className="card-head"><h2 className="card-head-title">API key unavailable</h2></div>
               <p className="mt-2 text-sm">A key is saved but cannot be read on this computer. Paste it again on the Intelligence page.</p>
             </section>
           )}
@@ -122,7 +122,7 @@ export function Assistant() {
                       <p className="text-sm font-medium">{x.question}</p>
                       <p className="mt-2 text-sm leading-relaxed">{x.answer}</p>
                       <details className="mt-3">
-                        <summary className="section-link cursor-pointer text-xs">What was sent, exactly</summary>
+                        <summary className="card-link cursor-pointer text-xs">What was sent, exactly</summary>
                         <dl className="mt-2 flex flex-col gap-1.5 text-xs text-muted">
                           <div>
                             <dt className="meta">User turn (sent)</dt>
@@ -242,7 +242,7 @@ export function Assistant() {
 
               {showFunctions && (
                 <section className="card card-pad mt-3" aria-label="Data functions the model may call">
-                  <h2 className="section-title">The only functions it can call</h2>
+                  <div className="card-head"><h2 className="card-head-title">The only functions it can call</h2></div>
                   <p className="mt-1 text-sm text-muted">Read-only numeric or list results, run on this computer. The model picks one; it never sees rows or queries.</p>
                   <ul className="mt-2 flex flex-col gap-1 text-sm">
                     {functions.map((f) => (
