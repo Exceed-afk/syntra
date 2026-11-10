@@ -16,6 +16,8 @@ import { useRefreshOnCapture } from '../lib/dataChanged'
 import type { ModuleProps } from '../lib/navigation'
 import { PageHeader } from '../components/PageHeader'
 import { Pnl } from '../components/Pnl'
+import { Toolbar, ToolbarEnd, ToolbarStart } from '../components/Toolbar'
+import type { LucideIcon } from 'lucide-react'
 
 type Layer = 'journal' | 'trades' | 'savings' | 'habits' | 'bills' | 'focus'
 const LAYERS: { id: Layer; label: string }[] = [
@@ -105,19 +107,38 @@ export function Calendar({ onOpen, onNavigate }: ModuleProps) {
     select(target)
   }
 
-  const now = today()
-  const viewingNow = month === monthOf(now) && selected === now
   const day = data?.weeks.flat().find((d) => d.date === selected) ?? null
 
   return (
-    <div className="page">
-      <PageHeader title="Calendar" help={`${data?.month === month ? data.label : monthLabel(month)}. What happened on each day across the logbook, trades, savings, habits, bills, focus and content. Pick a day to see its details.`}>
-        <div className="flex items-center">
-          <button className="btn-icon" aria-label="Previous month" title="Previous month" onClick={() => step(-1)}><ChevronLeft size={18} /></button>
-          <button className="btn-icon" aria-label="Next month" title="Next month" onClick={() => step(1)}><ChevronRight size={18} /></button>
-        </div>
-        {!viewingNow && <button className="btn btn-sm" onClick={goToday}>Today</button>}
-      </PageHeader>
+    <div className="page page-wide page-fill">
+      <PageHeader
+        title="Calendar"
+        badge={<span className="badge">{data?.month === month ? data.label : monthLabel(month)}</span>}
+        help={`${data?.month === month ? data.label : monthLabel(month)}. What happened on each day across the logbook, trades, savings, habits, bills, focus and content. Pick a day to see its details.`}
+      />
+
+      {/* One toolbar row: the month stepper on the left, the map layers on the right. */}
+      <Toolbar label="Calendar">
+        <ToolbarStart>
+          <div className="period-nav">
+            <button className="arrow" aria-label="Previous month" title="Previous month" onClick={() => step(-1)}>
+              <ChevronLeft size={18} aria-hidden="true" />
+            </button>
+            <button className="btn btn-sm" onClick={goToday}>Today</button>
+            <button className="arrow" aria-label="Next month" title="Next month" onClick={() => step(1)}>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </ToolbarStart>
+        <ToolbarEnd>
+          <div role="group" aria-label="Layers shown on the calendar" className="flex flex-wrap items-center gap-1.5">
+            {LAYERS.map((l) => (
+              <button key={l.id} type="button" aria-pressed={layers[l.id]} onClick={() => toggleLayer(l.id)}
+                className={`rounded-lg border px-2.5 py-1 text-xs ${layers[l.id] ? 'border-accent bg-accent/15 text-fg' : 'border-line text-muted hover:text-fg'}`}>{l.label}</button>
+            ))}
+          </div>
+        </ToolbarEnd>
+      </Toolbar>
 
       {error && <p role="alert" className="mb-4 text-sm text-neg">{error}</p>}
       {!data && !error && <p className="text-sm text-muted" aria-busy="true">Loading...</p>}
@@ -126,22 +147,14 @@ export function Calendar({ onOpen, onNavigate }: ModuleProps) {
         <div className={data.month === month ? '' : 'opacity-60 transition-opacity'} aria-busy={data.month !== month}>
           <Summary data={data} />
 
-          <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Show on the calendar">
-            <span className="mr-1 text-xs text-muted">Show</span>
-            {LAYERS.map((l) => (
-              <button key={l.id} aria-pressed={layers[l.id]} onClick={() => toggleLayer(l.id)}
-                className={`rounded-lg border px-2.5 py-1 text-xs ${layers[l.id] ? 'border-accent bg-accent/15' : 'border-line text-muted hover:text-fg'}`}>{l.label}</button>
-            ))}
-          </div>
-
-          <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-            <div>
+          <div className="mt-2 grid flex-1 gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="flex min-h-0 flex-col">
               <div className="grid grid-cols-7 gap-1 px-0.5 pb-1 text-center text-xs text-muted" aria-hidden="true">
                 {WEEKDAY_NAMES.map((w) => <div key={w}>{w}</div>)}
               </div>
-              <div ref={grid} role="grid" aria-label={data.label} onKeyDown={onGridKey} className="flex flex-col gap-1">
+              <div ref={grid} role="grid" aria-label={data.label} onKeyDown={onGridKey} className="flex min-h-0 flex-1 flex-col gap-1">
                 {data.weeks.map((week) => (
-                  <div key={week[0].date} role="row" className="grid grid-cols-7 gap-1">
+                  <div key={week[0].date} role="row" className="grid min-h-[5.25rem] flex-1 grid-cols-7 gap-1">
                     {week.map((d) => <Cell key={d.date} day={d} selected={d.date === selected} layers={layers} onSelect={select} />)}
                   </div>
                 ))}
@@ -161,15 +174,16 @@ export function Calendar({ onOpen, onNavigate }: ModuleProps) {
 
 // ---------------------------------------------------------------------------------------------------------------
 
+// One compact row of small stats above the grid (not a block of cards).
 function Summary({ data }: { data: CalendarData }) {
   const s = data.summary
   return (
-    <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-      <div><dt className="meta">Journal</dt><dd className="mt-0.5 font-medium">{s.entries} {s.entries === 1 ? 'entry' : 'entries'} on {s.daysWritten} {s.daysWritten === 1 ? 'day' : 'days'}</dd></div>
-      <div><dt className="meta">Trading</dt><dd className="mt-0.5 font-medium">{s.closed === 0 ? (s.open > 0 ? `${s.open} open` : 'No closed trades') : <><Pnl value={s.pnl} /> <span className="font-normal text-muted">({s.closed} closed)</span></>}</dd></div>
-      <div><dt className="meta">Savings</dt><dd className="mt-0.5 font-medium">{s.savingsNet === 0 ? 'No movement' : <Pnl value={s.savingsNet} />}</dd></div>
-      <div><dt className="meta">Habits</dt><dd className="mt-0.5 font-medium">{s.habitRate === null ? 'None counted yet' : `${Math.round(s.habitRate)}% done`}</dd></div>
-      {s.moodAverage !== null && <div><dt className="meta">Mood</dt><dd className="mt-0.5 font-medium">{s.moodAverage.toFixed(1)} / 5</dd></div>}
+    <dl className="mt-1 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs">
+      <div className="flex items-baseline gap-1.5"><dt className="meta">Journal</dt><dd className="font-medium">{s.entries === 0 ? 'None yet' : `${s.entries} on ${s.daysWritten} ${s.daysWritten === 1 ? 'day' : 'days'}`}</dd></div>
+      <div className="flex items-baseline gap-1.5"><dt className="meta">Trading</dt><dd className="font-medium">{s.closed === 0 ? (s.open > 0 ? `${s.open} open` : 'No closed trades') : <><Pnl value={s.pnl} /> <span className="font-normal text-muted">({s.closed} closed)</span></>}</dd></div>
+      <div className="flex items-baseline gap-1.5"><dt className="meta">Savings</dt><dd className="font-medium">{s.savingsNet === 0 ? 'No movement' : <Pnl value={s.savingsNet} />}</dd></div>
+      <div className="flex items-baseline gap-1.5"><dt className="meta">Habits</dt><dd className="font-medium">{s.habitRate === null ? 'None counted yet' : `${Math.round(s.habitRate)}% done`}</dd></div>
+      {s.moodAverage !== null && <div className="flex items-baseline gap-1.5"><dt className="meta">Mood</dt><dd className="font-medium">{s.moodAverage.toFixed(1)} / 5</dd></div>}
     </dl>
   )
 }
@@ -178,43 +192,66 @@ function Cell({ day, selected, layers, onSelect }: { day: CalendarDay; selected:
   const h = day.habits
   const habitTotal = h.done + h.missed + h.pending
   const label = describeDay(day)
+  // What the cell shows, in priority order. Three fit; anything else becomes a "+N" whose title lists it, and
+  // the day panel on the right always shows every item in full.
+  const items: { key: string; Icon: LucideIcon; text: string; tone: string; title: string }[] = []
+  if (layers.journal && day.entries.length > 0) {
+    items.push({ key: 'journal', Icon: BookOpen, text: String(day.entries.length), tone: 'text-muted', title: `${day.entries.length} journal ${day.entries.length === 1 ? 'entry' : 'entries'}` })
+  }
+  if (layers.trades && day.closed > 0) {
+    items.push({ key: 'trades', Icon: CandlestickChart, text: compact(day.pnl), tone: pnlColor(day.pnl), title: `${day.closed} closed ${day.closed === 1 ? 'trade' : 'trades'}, ${compact(day.pnl)}` })
+  }
+  if (layers.trades && day.open > 0) {
+    items.push({ key: 'open', Icon: CandlestickChart, text: `${day.open} open`, tone: 'text-muted', title: `${day.open} open ${day.open === 1 ? 'trade' : 'trades'}` })
+  }
+  if (layers.savings && day.txs.length > 0) {
+    items.push({ key: 'savings', Icon: PiggyBank, text: compact(day.savingsNet), tone: pnlColor(day.savingsNet), title: `Savings ${compact(day.savingsNet)}` })
+  }
+  if (layers.habits && (habitTotal > 0 || h.bonus > 0)) {
+    items.push({
+      key: 'habits',
+      Icon: CalendarCheck,
+      text: habitTotal > 0 ? `${h.done}/${habitTotal}` : `+${h.bonus}`,
+      tone: habitTotal > 0 && h.done === habitTotal ? 'text-pos' : 'text-muted',
+      title: habitTotal > 0 ? `${h.done} of ${habitTotal} habits done` : `${h.bonus} bonus check-in${h.bonus === 1 ? '' : 's'} on a rest day`
+    })
+  }
+  if (day.published.length > 0) {
+    items.push({ key: 'published', Icon: Clapperboard, text: String(day.published.length), tone: 'text-pos', title: `${day.published.length} published` })
+  }
+  if (day.published.length === 0 && day.planned.length > 0) {
+    items.push({ key: 'planned', Icon: Clapperboard, text: String(day.planned.length), tone: 'text-muted', title: `${day.planned.length} planned` })
+  }
+  if (layers.bills && day.bills && day.bills.length > 0) {
+    items.push({ key: 'bills', Icon: Receipt, text: String(day.bills.length), tone: 'text-warn', title: `${day.bills.length} bill${day.bills.length === 1 ? '' : 's'} due` })
+  }
+  if (layers.focus && day.focusSessions && day.focusSessions.length > 0) {
+    const minutes = Math.round(day.focusSessions.reduce((sum, s) => sum + s.seconds, 0) / 60)
+    items.push({ key: 'focus', Icon: Timer, text: `${minutes}m`, tone: 'text-accent-fg', title: `${minutes} focus minutes in ${day.focusSessions.length} session${day.focusSessions.length === 1 ? '' : 's'}` })
+  }
+  const shown = items.slice(0, 3)
+  const hidden = items.slice(3)
   return (
     <div role="gridcell" aria-selected={selected}>
       <button data-date={day.date} tabIndex={selected ? 0 : -1} aria-label={label} title={label} aria-current={day.isToday ? 'date' : undefined}
         onClick={() => onSelect(day.date)}
-        className={`flex h-[5.25rem] w-full flex-col rounded-lg border p-1.5 text-left transition-colors hover:bg-fg/5
-          ${selected ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-line'} ${day.inMonth ? '' : 'opacity-50'}`}>
+        className={`flex h-full min-h-[5.25rem] w-full flex-col overflow-hidden rounded-lg border p-1.5 text-left transition-colors hover:bg-fg/5
+          ${selected ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-line'} ${day.inMonth ? '' : 'text-muted opacity-80'}`}>
         <span className="flex items-center justify-between">
           <span className={`grid h-5 min-w-[1.25rem] place-items-center rounded-full px-1 text-xs ${day.isToday ? 'bg-accent font-semibold text-on-accent' : day.isFuture ? 'text-muted' : ''}`}>
             {Number(day.date.slice(8))}
           </span>
-          {layers.journal && day.mood && <span className={`h-2 w-2 rounded-full ${MOOD_STYLE[day.mood].dot}`} aria-hidden="true" />}
+          {layers.journal && day.mood && (
+            <span className={`h-2 w-2 rounded-full ${MOOD_STYLE[day.mood].dot}`} role="img" title={moodStyle(day.mood).label} aria-label={`Mood ${moodStyle(day.mood).label.toLowerCase()}`} />
+          )}
         </span>
-        <span className="mt-auto flex flex-wrap gap-x-1.5 gap-y-0.5 text-[11px] leading-4" aria-hidden="true">
-          {layers.journal && day.entries.length > 0 && <span className="flex items-center gap-0.5 text-muted"><BookOpen size={11} />{day.entries.length}</span>}
-          {layers.trades && day.closed > 0 && <span className={`flex items-center gap-0.5 ${pnlColor(day.pnl)}`}><CandlestickChart size={11} />{compact(day.pnl)}</span>}
-          {layers.trades && day.open > 0 && <span className="flex items-center gap-0.5 text-muted">{day.closed === 0 && <CandlestickChart size={11} />}{day.open} open</span>}
-          {layers.savings && day.txs.length > 0 && <span className={`flex items-center gap-0.5 ${pnlColor(day.savingsNet)}`}><PiggyBank size={11} />{compact(day.savingsNet)}</span>}
-          {layers.habits && (habitTotal > 0 || h.bonus > 0) && (
-            <span className={`flex items-center gap-0.5 ${habitTotal > 0 && h.done === habitTotal ? 'text-pos' : 'text-muted'}`}>
-              <CalendarCheck size={11} />{habitTotal > 0 ? `${h.done}/${habitTotal}` : `+${h.bonus}`}
+        <span className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-4">
+          {shown.map(({ key, Icon, text, tone, title }) => (
+            <span key={key} className={`flex items-center gap-0.5 whitespace-nowrap ${tone}`} title={title}>
+              <Icon size={11} aria-hidden="true" />{text}
             </span>
-          )}
-          {/* Phase 3: content published (solid) and planned (muted) that day. */}
-          {day.published.length > 0 && <span className="flex items-center gap-0.5 text-pos"><Clapperboard size={11} />{day.published.length}</span>}
-          {day.published.length === 0 && day.planned.length > 0 && <span className="flex items-center gap-0.5 text-muted"><Clapperboard size={11} />{day.planned.length}</span>}
-          {/* Phase 1 / 6: bills due that day */}
-          {layers.bills && day.bills && day.bills.length > 0 && (
-            <span className="flex items-center gap-0.5 text-warn" title={`${day.bills.length} bill(s) due`}>
-              <Receipt size={11} />{day.bills.length}
-            </span>
-          )}
-          {/* Phase 4 / 6: focus sessions */}
-          {layers.focus && day.focusSessions && day.focusSessions.length > 0 && (
-            <span className="flex items-center gap-0.5 text-accent-fg" title={`${day.focusSessions.length} focus session(s)`}>
-              <Timer size={11} />{Math.round(day.focusSessions.reduce((sum, s) => sum + s.seconds, 0) / 60)}m
-            </span>
-          )}
+          ))}
+          {hidden.length > 0 && <span className="text-muted" title={hidden.map((i) => i.title).join('; ')}>+{hidden.length}</span>}
         </span>
       </button>
     </div>

@@ -71,10 +71,12 @@ Every page is built from the pieces in `src/renderer/src/components/`. The rules
 
 | Class | Max width | Pages |
 | --- | --- | --- |
-| `.page` | **64rem** (normal) | Review, Daily briefing, Insights, Assistant, Calendar, Logbook, Savings, Habits, Focus, Tools, Calculator, Content, Intelligence, Notes, Tags, Search, Trash, Settings, Expenses |
-| `.page-wide` | **86rem** (data-heavy: boards, grids, wide tables) | Dashboard, Trades, Tasks |
+| `.page` | **64rem** (normal) | Review, Daily briefing, Insights, Assistant, Logbook, Savings, Habits, Focus, Tools, Calculator, Content, Intelligence, Notes, Tags, Search, Trash, Settings, Expenses |
+| `.page-wide` | **86rem** (data-heavy: boards, grids, wide tables) | Dashboard, Trades, Tasks, Calendar |
 
 `page-lg` no longer exists: the old `page-lg` pages are `.page` (the Calculator included; `.page-sm` is still there for a deliberately narrow page). Dashboard, Trades and Tasks (list and board alike) are `.page-wide`. Both widths are defined once, in `styles.css` ("Shared page primitives"), so no page is narrower by accident.
+
+**Filling the window.** A page whose content should take the window's height instead of stopping short (Calendar's month grid) adds `.page-fill` next to its width class. The page becomes a column at least as tall as `<main>`, so its one flexible child can use the space left; when the window is too short for the content's minimum height, the page scrolls as usual.
 
 **Page header (`components/PageHeader.tsx`).** Title on the left, the page's one primary action on the right, **no subtitle**. Explanatory text goes in `help`: a small question-mark icon that opens a popover (keyboard: Enter opens, Escape closes and returns focus). A status badge that belongs to the title (Review's "In progress") goes in `badge`, next to the title. A header may hold a few secondary controls (Review's arrows), but only one primary button.
 

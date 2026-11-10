@@ -258,6 +258,9 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
      Every page uses these, so the whole app reads as one product. All spacing follows Density (--d). */
   .page { width: 100%; max-width: 64rem; margin-inline: auto; padding: calc(2rem * var(--d)) calc(2.5rem * var(--d)) calc(3rem * var(--d)); animation: fade-up .18s ease-out; }
   .page-sm { max-width: 48rem; }
+  /* A page that uses the window's height (Calendar's month grid): a column at least as tall as <main>, so its one
+     flexible child takes the space left instead of leaving a gap. It still scrolls when the window is too short. */
+  .page-fill { display: flex; flex-direction: column; min-height: 100%; }
   .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: calc(1.25rem * var(--d)); }
   /* A page name is 28px bold; the small letter-spacing keeps long titles from feeling loose. */
   .page-title { font-size: 1.75rem; line-height: 2.125rem; font-weight: 650; letter-spacing: -.025em; }
