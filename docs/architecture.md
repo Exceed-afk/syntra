@@ -89,7 +89,7 @@ src/
     index.html / main.tsx  entry; chooses <App/> or <Capture/> by URL hash
     src/
       App.tsx            shell: active tool state, global keys, palette host
-      tools.ts           THE tool registry: id, name, route, icon, Ctrl+1..7
+      tools.ts           THE tool registry: id, name, route, icon (no per-tool key)
       modules/           15 page components (Dashboard, Logbook, Trades, ..., Calculator)
       components/        shared pieces (Sidebar, CommandPalette, WeekStrip, ...)
       lib/               settingsStore, theme, navigation, dates, format, errors
@@ -183,7 +183,7 @@ All `ipcMain.handle` calls live in `src/main/index.ts`; all caller wrappers in `
 
 ### 4.4 The app shell and module switching
 
-- There is **no router** and no URL navigation. `src/renderer/src/tools.ts` is the single registry of 14 tools (id, name, route string like `/trades` which is only a label, category, keywords, optional `Ctrl+<digit>` shortcut, `footer: true` for Settings, and the eagerly imported React component). A `validateTools()` call throws at startup if an entry is malformed.
+- There is **no router** and no URL navigation. `src/renderer/src/tools.ts` is the single registry of the tools (id, name, route string like `/trades` which is only a label, category, keywords, `footer: true` for Settings, and the eagerly imported React component; no tool has a key of its own). A `validateTools()` call throws at startup if an entry is malformed.
 - `src/renderer/src/App.tsx` holds `active` (a tool id) in `useState`. `navigate(where)` → `findTool()` → `setActive` → and every switch records a **recent tools** entry: `pushRecent()` (`src/shared/palette.ts`) writes `recentTools` into the settings store.
 - The page component swaps instantly (`<Page ... />` in `App.tsx`); switching tools **unmounts** the old page, so a fresh mount always re-fetches fresh data from SQLite.
 - Pages receive `ModuleProps` (`src/renderer/src/lib/navigation.ts`): `onNavigate(idOrRoute)`, `onOpen(target)` where target is an `OpenTarget` (`{module:'logbook', entry}`, `{module:'trades', trade}`, `{module:'savings', goalId}`), and `target` handled by the receiving page then `onTargetHandled()`. Search results in the Logbook/Trades/Savings open this way.
@@ -195,7 +195,7 @@ All `ipcMain.handle` calls live in `src/main/index.ts`; all caller wrappers in `
 |---|---|---|
 | Command palette | `App.tsx` + `components/PaletteHost.tsx` + `components/CommandPalette.tsx` | Ctrl+K toggles. Items are tools (from tools.ts) + actions (src/renderer/src/actions.ts) shaped by lib/paletteItems.ts; ranking is a pure fuzzy matcher in src/shared/palette.ts |
 | Theme / accent / density | lib/theme.ts `applyAppearance()`, lib/settingsStore.ts | Sets `dark` class + `data-style` + CSS variables from src/shared/appearance.ts; Tailwind maps every colour name to those variables (tailwind.config.js) so palettes are data, not rebuilds |
-| Global keys | App.tsx key handler | Ctrl+K palette; Ctrl+B collapse sidebar; Ctrl+1..7 jump to tools with a `shortcut` in tools.ts (dashboard 1, logbook 2, trades 3, savings 4, habits 5, search 6, settings 7) |
+| Global keys | App.tsx key handler, from src/shared/shortcuts.ts | Ctrl+K palette; Ctrl+, Settings; Ctrl+B collapse sidebar; Ctrl+Z undo the last delete. Page keys (Ctrl+N, the Expenses tabs on Ctrl+1..4, the Tasks keys) stay in their pages. Settings > Shortcuts reads the same list. |
 | Page-local keys | each module, e.g. Habits Ctrl+N (src/renderer/src/modules/Habits.tsx) | Every page registers its own handlers (save with Ctrl+Enter in editors, Esc closes) |
 | Universal search | modules/Search.tsx → `search:run` → src/main/search.ts | Asks logbook, trades, savings for LIKE matches (parsed `#tag` + words via src/shared/search.ts) and bundles results |
 | Quick capture | src/main/capture.ts + modules/Capture.tsx | Global shortcut + tray → overlay window; saves via normal IPC; then `capture:saved` handler pushes `data:changed` to the main window; open pages re-fetch via useRefreshOnCapture (lib/dataChanged.ts) |

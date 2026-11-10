@@ -66,7 +66,7 @@ Every page is built from the pieces in `src/renderer/src/components/`. The rules
 | `.page` | **64rem** (normal) | Review, Daily briefing, Insights, Assistant, Calendar, Logbook, Savings, Habits, Focus, Tools, Calculator, Content, Intelligence, Notes, Tags, Search, Trash, Settings, Expenses |
 | `.page-wide` | **86rem** (data-heavy: boards, grids, wide tables) | Dashboard, Trades, Tasks |
 
-`page-sm` and `page-lg` no longer exist. The old `page-lg` pages are now `.page`; Dashboard, Trades and Tasks (list and board alike) are `.page-wide`.
+`page-lg` no longer exists: the old `page-lg` pages are `.page` (the Calculator included; `.page-sm` is still there for a deliberately narrow page). Dashboard, Trades and Tasks (list and board alike) are `.page-wide`. Both widths are defined once, in `styles.css` ("Shared page primitives"), so no page is narrower by accident.
 
 **Page header (`components/PageHeader.tsx`).** Title on the left, the page's one primary action on the right, **no subtitle**. Explanatory text goes in `help`: a small question-mark icon that opens a popover (keyboard: Enter opens, Escape closes and returns focus). A status badge that belongs to the title (Review's "In progress") goes in `badge`, next to the title. A header may hold a few secondary controls (Review's arrows), but only one primary button.
 
@@ -272,7 +272,7 @@ The look is defined once, in `src/shared/design.ts`: the colour tokens for light
 - **Charts**: plain SVG, with every colour read from the theme at render time (`--pos`, `--neg`, `--mood`, `--chart-axis`, `--chart-grid`), so dark mode and every palette are correct. Tooltips are real themed elements, and each chart's figures are also text.
 
 ### How to add a themed component
-1. Build with the existing primitives: `.page` / `.page-sm` / `.page-lg`, `.card` + `.card-pad*`, `.btn` / `.btn-primary` / `.btn-danger` / `.btn-icon`, `.field`, `.seg`, `.badge`, `.tbl`, `.row-link`, `.empty`, and `PageHeader` / `EmptyState` / `PnL` from `components/`.
+1. Build with the existing primitives: `.page` / `.page-sm` / `.page-wide`, `.card` + `.card-pad*`, `.btn` / `.btn-primary` / `.btn-danger` / `.btn-icon`, `.field`, `.seg`, `.badge`, `.tbl`, `.row-link`, `.empty`, and `PageHeader` / `EmptyState` / `PnL` from `components/`.
 2. Use token classes only (`bg-card`, `text-muted`, `border-line`, `bg-pos`, `text-neg`, `bg-accent`, ...), or `rgb(var(--token))` in an inline style when an SVG attribute needs it. Never write a fixed hex value in a page.
 3. Add a new colour token in `src/shared/design.ts` first, then the CSS variable in `src/renderer/src/styles.css` and the first-paint copy in `src/renderer/index.html`; add a contrast check in `tests/design.ts`. Shape, spacing and type tokens are already multiplied by `--rs`, `--d` and `--ts`.
 4. Check both themes and the narrow layout with `npm run preview`, and make sure the control has a visible focus ring and its movement is under 250ms (all animation is switched off for reduced motion).
@@ -309,15 +309,20 @@ A small always-on-top window for logging something without opening the app: a **
 - **Where things live**: `src/shared/capture.ts` has every rule (which shortcuts are allowed, how a key press becomes one, how the form text becomes a valid note / trade / deposit, which habits are listed), covered by `tests/capture.ts`. `src/main/capture.ts` owns the shortcut, tray icon and window. `modules/Capture.tsx` is the small window's page (the same renderer bundle, shown instead of `<App />` when the address ends in `#capture`) and `components/CaptureSettings.tsx` the settings tab. To add another thing to capture, add a tab to `TABS` in `Capture.tsx` and a builder in `shared/capture.ts`.
 
 ## Shortcuts
-- `Ctrl+1` to `Ctrl+7` open the tools that declare those shortcuts (see `tools.ts`; Review has none, use `Ctrl+K`). The Quick capture shortcut works in any program and is set in Settings, `Ctrl+N` creates a new item on the current page
-- `Ctrl+K` (`Cmd+K` on a Mac) opens the command palette; press it again, or `Esc`, to close it. Search is still `Ctrl+6`.
-- `Ctrl+B` collapses the sidebar to icons, or expands it again
+Only a few keys are global; the numbered `Ctrl+1` to `Ctrl+7` "go to this tool" keys are gone, because a key per tool does not scale as tools are added. The list lives in `src/shared/shortcuts.ts` (`GLOBAL_SHORTCUTS`), which both the key handler in `src/renderer/src/App.tsx` and Settings > Shortcuts read, so the page and the keys cannot drift apart. `Cmd` replaces `Ctrl` on a Mac.
+- `Ctrl+K` (`Cmd+K` on a Mac) opens the command palette, which lists every tool (built from the registry, so a new tool appears with no extra work); press it again, or `Esc`, to close it. Type part of a name ("habit", "calc", "trash", "settings") to jump there.
+- `Ctrl+,` (`Cmd+,`) opens Settings.
+- `Ctrl+N` creates a new item on the current page (the page's own handler: Logbook, Trades, Savings, Expenses, Tasks, Notes, Content, and so on).
+- `Ctrl+B` collapses the sidebar to icons, or expands it again.
+- `Ctrl+Z` (`Cmd+Z`) undoes the last delete of the session.
+- A Quick capture shortcut also works in any program; it is set in Settings.
+- **On some pages**: `Ctrl+Enter` saves the open editor; `Ctrl+1` to `Ctrl+4` switch the Expenses tabs (only there); Notes uses `Ctrl+E` for its editor layout; Tasks uses `j` / `k` / `x` / `e` / `d` / `n` / `/`; the Stopwatch tab uses `Space`, `L` and `R`.
 - **Zoom**: `Ctrl+=` (plain, no Shift) zooms in, as browsers do; `Ctrl+Shift++` and `Ctrl+NumpadAdd` zoom in, `Ctrl+-` and `Ctrl+NumpadSubtract` zoom out, and `Ctrl+0` resets to 100%. `Cmd` replaces `Ctrl` on a Mac. One step is about 1.2× (0.5 zoom level), the same step the menu's zoom roles use, and it stops where they do (about 4.3× up, 0.28× down). Plain `Ctrl+=` and the numpad keys are handled in `src/main/index.ts` (`before-input-event`); the rest come from Electron's default menu. Zoom is **not saved**: every start is 100%.
 
 ## Sidebar
 - **Groups**: the start pages sit under **Overview** (the first group), then tools are grouped by category (Money, Health, Productivity, **Journal**, Utilities). Journal holds the Logbook and the Notes tool; its id stays `notes` (saved in your settings), only the label reads "Journal". Every group has a heading, Overview included, and every heading folds or unfolds its group. A folded group that holds the page you are on shows a small accent dot. Below the list, the Dark mode button and the Settings tool sit in a footer that never scrolls. Keyboard order is the same as the screen: Tab moves from heading to tool to heading (the pin buttons are reached from their own row, see Pinned), and every heading and row is a real button, so Enter and Space work. The list itself is a focus target (`tabIndex=-1`), so it can be scrolled on its own when the window is short.
-- **Names**: every tool name fits the full sidebar, with the pin button showing and on the active row, at every text size, font and density and in every theme (measured in a real window by `tests/sidebar-layout.ts`). Should a name still be cut off (a very long pinned name, an extreme setting), its full name appears in a tip beside the row on hover or keyboard focus.
-- **Scrolling**: the list scrolls when the window is short; the Dark mode / Settings footer (and the Settings tool next to it) stays fixed at the bottom. The list always reserves the scrollbar's room (`scrollbar-gutter: stable`), so rows never shift sideways when the bar appears or goes.
+- **Names**: every tool name fits the full sidebar, with the pin button showing and on the active row, at every text size, font and density and in every theme (measured in a real window by `tests/sidebar-layout.ts`). The sidebar is 16rem wide for that reason (15.25rem left only 1.4px spare on "Daily briefing" at the smallest text size with the Mono font, and `box-sizing: border-box` was added so that width really is the full width, padding included). Should a name still be cut off (a very long pinned name, an extreme setting), its full name appears in a tip beside the row on hover or keyboard focus.
+- **Scrolling**: the list scrolls when the window is short (wheel, keyboard focus on a row, or the list itself), so a group near the bottom, Utilities included, is always reachable; the Dark mode button and Settings stay fixed in the footer at the bottom. The list always reserves the scrollbar's room (`scrollbar-gutter: stable`), so rows never shift sideways when the bar appears or goes.
 - **Scrollbar**: the list uses the app-wide thin scrollbar (theme tokens, brighter on hover). It is painted inside the list's own right padding, so it never takes width from a name.
 - **Pinned**: hover a tool (or tab to it) and use the pin button to put it in a "Pinned" section at the top; pinned tools are listed there only, in the order you pinned them. Unpin the same way. Settings is always at the bottom and is not pinnable. A pinned row is the only one that keeps its pin button showing on the active page, so it is the first place a long name could be cut off; should that ever happen, the tip above shows the whole name.
 - **Icons only**: the button at the top of the sidebar, or `Ctrl+B`, shrinks it to icons. Hover or tab to an icon to see its name and shortcut. In icons-only mode every group is open so every icon is reachable. (Pinning is done in the full sidebar.) It also switches to icons by itself in a narrow window.
@@ -329,7 +334,7 @@ A small always-on-top window for logging something without opening the app: a **
 - **Typing** matches tool names, categories and keywords from the registry. Letters only need to appear in order (`lgb` finds Logbook, `money` finds everything in Money), and every word you type must match something. Equal matches keep registry order.
 - **Keys**: `Up` / `Down` move (and wrap round), `Enter` opens, `Esc` closes, and so does `Ctrl+K` again. Hover and click work too. Focus returns to whatever had it before; if that element is gone because the page changed, it lands on the page.
 - **Empty box**: shows the tools you opened most recently (the page you are on is left out), newest first. Before any have been opened it lists every tool.
-- **Recent tools** are saved as `recentTools` in the app settings (the `settings` table in `everything.db`): tool ids, newest first, at most 8, no repeats. Every way of changing tool records one (sidebar, `Ctrl+<digit>`, the palette, "View all", search results). They survive restarts, are part of the JSON export and import, and an id for a tool that no longer exists is skipped when shown. Nothing leaves the computer.
+- **Recent tools** are saved as `recentTools` in the app settings (the `settings` table in `everything.db`): tool ids, newest first, at most 8, no repeats. Every way of changing tool records one (sidebar, the palette, "View all", search results, `Ctrl+,` for Settings). They survive restarts, are part of the JSON export and import, and an id for a tool that no longer exists is skipped when shown. Nothing leaves the computer.
 - **Actions**: things the palette can do besides opening a tool. Add one entry to `ACTIONS` in `src/renderer/src/actions.ts` (the file has an example); the palette itself does not change. The list starts empty.
 - **Where things live**: the matching, ranking, recents and action rules are in `src/shared/palette.ts` (covered by `tests/palette.ts`, run by `npm test`; `tests/registry.ts` checks the real tool list against the sidebar layout and the search, and repeats the rules for a generated 60-tool list); `lib/paletteItems.ts` turns tools and actions into palette rows; `components/PaletteHost.tsx` feeds them in; `components/CommandPalette.tsx` is the window, with `cp-*` styles in `styles.css`, which use only the theme variables. No library was added: the matcher is about 60 lines.
 
@@ -400,7 +405,7 @@ Type a sentence in the command palette (`Ctrl+K`) or the Quick capture window's 
 5. Add tests in `tests/quickAdd.ts` — the happy phrase, the ambiguous form, and something that should be rejected.
 
 ## Intelligence page
-**Intelligence** (Productivity) switches features on and off and holds the automations and the AI provider. It is the standard `.page` width, with one row of tabs under the header (the shared toolbar row): **Features**, **Automations** and **Assistant** (arrow keys, Home and End move between them). So the AI provider is one click away instead of below everything else, and every tab ends with the same "Your data stays on this computer" card.
+**Intelligence** (Productivity) switches features on and off and holds the automations and the AI provider. It is the standard `.page` width, with one row of tabs under the header (the shared toolbar row): **Features**, **Automations** and **Assistant** (arrow keys, Home and End move between them). So the AI provider is one click away instead of below everything else, and every tab ends with the same "Your data stays on this computer" card. The tabs sit where every page's toolbar row sits (under the header, `.page-toolbar`).
 
 - **Features**: the five switches (Daily briefing, Automations, Smart quick-add, Insights, AI assistant) in one card as one compact list: the label on the left, its one-line description under it, and the switch on the right (`SwitchRow`). The whole row is the label, Space toggles it.
 - **Automations**: the rules, then the **Automation activity** list.
@@ -450,7 +455,7 @@ All maths lives in the pure module `src/shared/insights.ts` (tested in `tests/in
 5. Tests in `tests/insights.ts`: the rich-window case, the tiny-data case, and a ties case.
 
 ## Automations
-Automations are small, predictable helpers — **not** a general rule builder. Each one listens for one thing happening (a tool event), decides from its own toggle and a number, and either **creates a draft** or **shows a message**. All four are off by default, each with its own card on the Intelligence page.
+Automations are small, predictable helpers — **not** a general rule builder. Each one listens for one thing happening (a tool event), decides from its own toggle and a number, and either **creates a draft** or **shows a message**. All four are off by default, each with its own row (a `SwitchRow`, with its number underneath) in the Automations tab of the Intelligence page.
 - **Loss reflection drafts**: a trade closing at a loss bigger than your threshold creates a draft logbook entry with reflection prompts. This also covers trades entered already closed when their trade date is today or up to three days earlier; older and future-dated trades are ignored. The entry is tagged `#automation`, its first line says "Created by an automation — safe to delete", and deleting it in the Logbook deletes it like any entry. Drafts remain visible, but do not count as writing in streaks, authored-entry totals, or journal mood statistics.
 - **Goal celebrations**: a savings goal reaching its target shows a celebration message and suggests setting a new goal.
 - **Broken streak notes**: a habit streak of 7 or more days breaking shows a gentle note (on the Daily briefing's "From your automations" area).
@@ -464,7 +469,7 @@ Automations are small, predictable helpers — **not** a general rule builder. E
 ### How to add a new rule (one small change each)
 1. In `src/shared/automations.ts`: add the trigger's event kind to `AutomationEventKind` (if it is new) and write a rule function returning an `AutomationRule` — `id`, `label`, `description`, the `listensTo` kinds, and a pure `run(event, settings, ctx)` that returns `AutomationAction[]` (today: `create-draft-entry` or `message`).
 2. Add the rule to `defaultRules()` and a toggle key to `AutomationSettings` + `RULE_TOGGLE`, with a default of `false`.
-3. Add the toggle card in the Intelligence page (`modules/Intelligence.tsx`) reading/writing that key.
+3. Add a `SwitchRow` in the Automations tab of the Intelligence page (`modules/Intelligence.tsx`) reading/writing that key.
 4. Emit the event where it happens: `emitAutomation(db, kind, key, data)` in the tool's main-process query file. The `key` (e.g. `trade:12`) is what makes the trigger fire once, ever, per rule.
 5. Add tests in `tests/automations.ts` — off by default, fires on the event, ignores the rest.
 
@@ -473,7 +478,7 @@ Tools are defined once, in the registry `src/renderer/src/tools.ts`. The sidebar
 1. Create the page component (a file in `src/renderer/src/modules/`, taking `ModuleProps`).
 2. Add one entry to `TOOLS`: `id`, `name`, `icon`, `route`, `category`, `keywords` and `component`. Within a category, tools show in list order, and the first entry is the start page.
    - Categories (`overview`, `money`, `health`, `productivity`, `notes`, `utilities`) are listed in `src/shared/tools.ts`. A category with no tools is not shown; a new category is one line there.
-- `shortcut` (optional, a digit 1 to 9) gives a tool Ctrl+<digit>. Most new tools leave it out. `footer: true` keeps a tool at the bottom of the sidebar, always visible and not pinnable (Settings).
+- A tool has no key of its own: every tool is reached through the command palette (`Ctrl+K` / `Cmd+K`), which builds its list from `TOOLS`, so a new tool is there as soon as it is registered. `footer: true` keeps a tool at the bottom of the sidebar, always visible and not pinnable (Settings). A leftover `shortcut` field on a tool is ignored.
 - Pages and code can go to a tool by id or route: `onNavigate('trades')` or `onNavigate('/trades')`.
 - A mistake in an entry (duplicate id, route or shortcut, bad shape, unknown category) stops the app at start-up with a readable message. The rules are in `src/shared/tools.ts` and covered by `npm test`.
 
@@ -489,7 +494,7 @@ Everything applies at once and is saved. Settings are in the JSON export too.
 How it works: `src/shared/appearance.ts` owns the unified theme list, pure colour math, contrast validation and saved-setting normalization; `lib/theme.ts` puts the resolved tokens on `<html>`; `lib/settingsStore.ts` is the shared settings copy and caches the appearance to prevent a flash. Modern cards use the surface token with a blended border and soft shadow. Classic minimal cards use the page background and full border token, with flat surfaces and a separated sidebar.
 - **Add a colour theme**: add both light and dark token sets to `PALETTES` in `appearance.ts` and cover their contrast in `tests/appearance.ts`.
 - **Buttons** (`styles.css`): `btn`, `btn-primary`, `btn-danger`, `btn-icon`, plus `btn-sm`. All react to hover, press, keyboard focus, `disabled` and `aria-busy="true"` (spinner while saving).
-- **Sidebar order**: pinned tools first, then the categories in the order of `TOOL_CATEGORIES`; inside a category, the order of `TOOLS`. See "Sidebar" below.
+- **Sidebar order**: pinned tools first, then the categories in the order of `TOOL_CATEGORIES`; inside a category, the order of `TOOLS`. The group labels are the categories' display names (`src/shared/tools.ts`), so Settings > Modules shows "Journal", not its id `notes`. See "Sidebar" below.
 
 ## Tag colours
 Settings > Tag colours lists every tag; pick a colour and it applies in the logbook, trades and search. Colours are saved in the settings (so they are in your JSON export too). Chip drawing is in `components/TagChip.tsx`, the colour store in `lib/tagColors.ts`.
