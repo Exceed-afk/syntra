@@ -2,7 +2,7 @@
 // Every card carries the numbers behind its sentence (and the sample size) —
 // nothing claims causation, and a dismissal is remembered.
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Lightbulb, X } from 'lucide-react'
+import { BarChart3, Clock, X } from 'lucide-react'
 import type { InsightsPayload } from '../../../shared/types'
 import { MIN_DAYS } from '../../../shared/insights'
 import { MOOD_STYLE } from '../lib/moods'
@@ -105,21 +105,22 @@ function Card({ id, text, detail, onDismiss, snoozeWeeks, aLabel, bLabel, a, b }
   if (gone) return null
   return (
     <section className="card card-pad" aria-label={text}>
+      {/* No repeated "Insight" heading: the sentence is the card. */}
       <div className="flex items-start justify-between gap-3">
-        <h2 className="section-title"><Lightbulb size={15} /> Insight</h2>
-        <div className="flex items-center gap-1">
-          <button className="btn btn-sm" title={`Bring it back in ${snoozeWeeks} weeks`}
+        <p className="text-lg leading-relaxed">{text}</p>
+        <div className="-mr-1 -mt-1 flex shrink-0 items-center gap-1">
+          <button className="btn-icon" title={`Snooze for ${snoozeWeeks} weeks`} aria-label={`Snooze for ${snoozeWeeks} weeks`}
             onClick={() => { setGone(true); void onDismiss(id, true, 'snooze') }}>
-            Snooze {snoozeWeeks} weeks
+            <Clock size={15} />
           </button>
-          <button className="btn-icon hover:text-neg" aria-label="Hide this insight until restored"
+          <button className="btn-icon hover:text-neg" title="Hide this insight until restored" aria-label="Hide this insight until restored"
             onClick={() => { setGone(true); void onDismiss(id, true, 'hide') }}>
             <X size={15} />
           </button>
         </div>
       </div>
-      <p className="mt-2 text-sm leading-relaxed">{text}</p>
       {a && b && aLabel && bLabel && <GroupBars a={a} b={b} aLabel={aLabel} bLabel={bLabel} format={fmtAmount} />}
+      {/* The sample size and the numbers behind the sentence, kept in the card's own small type. */}
       <p className="meta mt-2">{detail}</p>
     </section>
   )
@@ -147,55 +148,62 @@ function WeekdayTables({ insights }: { insights: InsightsPayload }) {
       <h2 className="section-title"><BarChart3 size={15} /> The numbers behind them</h2>
       {hb.length > 0 && (
         <>
-          {/* I2: the same rate series as the table, drawn as a plain SVG line. */}
-          <Sparkline ariaLabel={`Habit completion rate by weekday, from ${Math.round(Math.min(...hb.map((r) => r.rate ?? 0)))}% to ${Math.round(Math.max(...hb.map((r) => r.rate ?? 0)))}%.`}
-            values={hb.map((r) => r.rate ?? 0)} className="text-accent mt-3" />
-          <table className="tbl mt-3">
-          <caption className="sr-only">Habit completion rate by weekday</caption>
-          <thead><tr><th scope="col">Weekday</th><th scope="col">Scheduled</th><th scope="col">Done</th><th scope="col">Rate</th></tr></thead>
-          <tbody>
-            {hb.map((w) => (
-              <tr key={w.weekday}>
-                <th scope="row">{w.weekday}</th><td className="num">{w.scheduled}</td><td className="num">{w.done}</td>
-                <td className="num">{w.rate === null ? '-' : `${Math.round(w.rate)}%`}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          {/* I2: the same rate series as the table, drawn as a plain SVG line;
+              on wide widths the chart sits beside its own table. */}
+          <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+            <Sparkline ariaLabel={`Habit completion rate by weekday, from ${Math.round(Math.min(...hb.map((r) => r.rate ?? 0)))}% to ${Math.round(Math.max(...hb.map((r) => r.rate ?? 0)))}%.`}
+              values={hb.map((r) => r.rate ?? 0)} className="text-accent" />
+            <table className="tbl">
+            <caption className="sr-only">Habit completion rate by weekday</caption>
+            <thead><tr><th scope="col">Weekday</th><th scope="col">Scheduled</th><th scope="col">Done</th><th scope="col">Rate</th></tr></thead>
+            <tbody>
+              {hb.map((w) => (
+                <tr key={w.weekday}>
+                  <th scope="row">{w.weekday}</th><td className="num">{w.scheduled}</td><td className="num">{w.done}</td>
+                  <td className="num">{w.rate === null ? '-' : `${Math.round(w.rate)}%`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
         </>
       )}
       {tb.length > 0 && (
         <>
-          <Sparkline ariaLabel={`Closed-trade P&L by weekday, from ${fmtPnl(Math.min(...tb.map((r) => r.pnl)))} to ${fmtPnl(Math.max(...tb.map((r) => r.pnl)))}.`}
-            values={tb.map((r) => r.pnl)} className={Math.max(...tb.map((r) => r.pnl)) >= 0 ? 'text-pos mt-4' : 'text-neg mt-4'} />
-          <table className="tbl mt-3">
-          <caption className="sr-only">Closed-trade P&L by weekday</caption>
-          <thead><tr><th scope="col">Weekday</th><th scope="col">Closed</th><th scope="col">P&L</th></tr></thead>
-          <tbody>
-            {tb.map((w) => (
-              <tr key={w.weekday}><th scope="row">{w.weekday}</th><td className="num">{w.closed}</td><td className="num">{fmtPnl(w.pnl)}</td></tr>
-            ))}
-          </tbody>
-        </table>
+          <div className="mt-4 grid items-start gap-3 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+            <Sparkline ariaLabel={`Closed-trade P&L by weekday, from ${fmtPnl(Math.min(...tb.map((r) => r.pnl)))} to ${fmtPnl(Math.max(...tb.map((r) => r.pnl)))}.`}
+              values={tb.map((r) => r.pnl)} className={Math.max(...tb.map((r) => r.pnl)) >= 0 ? 'text-pos' : 'text-neg'} />
+            <table className="tbl">
+            <caption className="sr-only">Closed-trade P&L by weekday</caption>
+            <thead><tr><th scope="col">Weekday</th><th scope="col">Closed</th><th scope="col">P&L</th></tr></thead>
+            <tbody>
+              {tb.map((w) => (
+                <tr key={w.weekday}><th scope="row">{w.weekday}</th><td className="num">{w.closed}</td><td className="num">{fmtPnl(w.pnl)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
         </>
       )}
       {mb.length > 0 && (
         <>
-          <Sparkline ariaLabel={`Closed-trade average P&L by the day's mood, from ${fmtPnl(Math.min(...mb.map((m) => m.avgPnl ?? 0)))} to ${fmtPnl(Math.max(...mb.map((m) => m.avgPnl ?? 0)))}.`}
-            values={mb.map((m) => m.avgPnl ?? 0)} className="text-accent mt-4" />
-          <table className="tbl mt-3">
-          <caption className="sr-only">Closed-trade P&L by the day's mood</caption>
-          <thead><tr><th scope="col">Mood</th><th scope="col">Days</th><th scope="col">Average P&L</th></tr></thead>
-          <tbody>
-            {mb.map((m) => (
-              <tr key={m.mood}>
-                <th scope="row"><span className={`mr-1.5 inline-block h-2.5 w-2.5 rounded-full ${MOOD_STYLE[m.mood].dot}`} aria-hidden="true" />{MOOD_STYLE[m.mood].label}</th>
-                <td className="num">{m.days}</td>
-                <td className="num">{m.avgPnl === null ? '-' : fmtPnl(m.avgPnl)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <div className="mt-4 grid items-start gap-3 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+            <Sparkline ariaLabel={`Closed-trade average P&L by the day's mood, from ${fmtPnl(Math.min(...mb.map((m) => m.avgPnl ?? 0)))} to ${fmtPnl(Math.max(...mb.map((m) => m.avgPnl ?? 0)))}.`}
+              values={mb.map((m) => m.avgPnl ?? 0)} className="text-accent" />
+            <table className="tbl">
+            <caption className="sr-only">Closed-trade P&L by the day's mood</caption>
+            <thead><tr><th scope="col">Mood</th><th scope="col">Days</th><th scope="col">Average P&L</th></tr></thead>
+            <tbody>
+              {mb.map((m) => (
+                <tr key={m.mood}>
+                  <th scope="row"><span className={`mr-1.5 inline-block h-2.5 w-2.5 rounded-full ${MOOD_STYLE[m.mood].dot}`} aria-hidden="true" />{MOOD_STYLE[m.mood].label}</th>
+                  <td className="num">{m.days}</td>
+                  <td className="num">{m.avgPnl === null ? '-' : fmtPnl(m.avgPnl)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
         </>
       )}
       <p className="meta mt-3">Weekdays are Monday to Sunday. Only scheduled days count for habit rates; only closed trades count for P&L.</p>
