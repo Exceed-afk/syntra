@@ -111,15 +111,15 @@ export function Intelligence() {
         </section>
         )}
 
-        {/* ---- Automations (step 3) ---- */}
+        {/* ---- Automations (step 3): every rule is one SwitchRow with its number underneath ---- */}
         {tab === 'automations' && (
         <section className="card card-pad-lg" aria-labelledby="automations-title">
-          <h2 id="automations-title" className="section-title flex items-center gap-2"><Zap size={15} /> Automations</h2>
+          <h2 id="automations-title" className="section-title"><Zap size={15} /> Automations</h2>
           <p className="mt-1 text-sm text-muted">
             Small, predictable helpers. Each one works on its own and is off until you turn it on.
             They only create drafts or show messages — they never edit or delete anything you made.
           </p>
-          <div className="mt-2">
+          <div className="mt-3">
             <SwitchRow label="Loss reflection drafts" description="When a trade closes at a loss bigger than your threshold, create a draft logbook entry with a reflection prompt (tagged #automation)."
               checked={automations.lossReflection} onChange={() => setAutomation({ lossReflection: !automations.lossReflection })}>
               <label className="flex items-center gap-3 text-sm">
@@ -178,7 +178,7 @@ export function Intelligence() {
         {/* ---- Activity: what the automations did and when ---- */}
         {tab === 'automations' && (
         <section className="card card-pad-lg" aria-labelledby="activity-title">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             <h2 id="activity-title" className="section-title">Automation activity</h2>
             {activity.length > 0 && (
               <button className="btn btn-sm" title="Hides the list. Automations will not repeat old triggers."

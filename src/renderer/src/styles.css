@@ -180,15 +180,19 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   .opt-name { padding: 0 .25rem .125rem; font-size: .8125rem; }
 
   /* ---- Sidebar (components/Sidebar.tsx) ----
-     15.25rem (it was 14.5rem): that is what "Daily briefing", the longest name, needs with the pin button showing
-     even in the widest font (Mono, about a pixel wider per character than the default); the space left over is
-     not enough for a longer word, so every theme looks the same. tests/sidebar-layout.ts measures every name in
-     the real window at the extreme text sizes, fonts and densities. */
+     16rem (it was 15.25rem): "Daily briefing", the longest name, with the pin button's room showing even in the
+     widest font (Mono, about a pixel wider per character than the default) at the smallest text size, where the
+     pin button is at its largest relative to the row: with 15.25rem that case had 1.36px to spare, and the 0.75rem
+     added here leaves room for a font that rounds a little wider on another machine. Every theme uses the same
+     colours and shape, so none is wider than another. tests/sidebar-layout.ts measures every name in the real
+     window at the extreme text sizes, fonts and densities and in every palette; a name that still has to be cut
+     off gets a tip (Sidebar.tsx showTip). */
   /* No flex gap on purpose: a container's `gap` also applies between its last item and the (absent) next one,
      which would hold the footer a few pixels off the bottom edge. The one gap between the header and the list is
      paid by the list itself (.sb-nav's margin-top below). */
   .sb {
-    display: flex; flex-direction: column; flex-shrink: 0; width: 15.25rem; padding: .75rem; overflow: hidden;
+    box-sizing: border-box; /* sizing: the rail halves it, and 16rem is the full width itself, padding included */
+    display: flex; flex-direction: column; flex-shrink: 0; width: 16rem; padding: .75rem; overflow: hidden;
     background: rgb(var(--panel)); border-right: 1px solid rgb(var(--line)); transition: width .18s ease;
   }
 
@@ -205,7 +209,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
      `scrollbar-gutter: stable` always reserves the bar's room, so the rows never shift when it appears.
      Only the vertical axis scrolls: with `overflow-x: hidden` the box would be a scroll container on both
      axes, and the active marker (right on the left edge, padding 0) would be clipped to a scroll snap.
-     The hint is only faded, never laid out away, so it is never scrolled into view.
+     (A row has no shortcut hint any more: Ctrl+K finds every tool, see shared/shortcuts.ts.)
 
      Only the list grows or shrinks (1 1 0: a zero basis, so nothing else is ever shrunk to make room); the header
      and the footer keep their natural size (0 0 auto). The footer therefore ends exactly on the sidebar's bottom
@@ -231,20 +235,8 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
     border-radius: 0 3px 3px 0; background: rgb(var(--accent-fg));
   }
   .sb-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* The shortcut hint floats over the right edge on hover, so it never takes room from the label: on a pinnable
-     row (where the pin button, not the hint, is shown on hover) it is hidden entirely. */
-  .sb-kbd {
-    position: absolute; right: .5rem; top: 50%; transform: translateY(-50%); padding: .05rem .35rem; pointer-events: none;
-    border: 1px solid rgb(var(--line)); border-radius: calc(.25rem * var(--rs)); background: rgb(var(--panel));
-    font-size: .6875rem; line-height: 1.1rem; font-weight: 400; color: rgb(var(--muted)); opacity: 0; transition: opacity .15s;
-  }
-  [data-style='minimal'] .sb-kbd { background: rgb(var(--bg)); }
-  /* The hint is only ever a help: a pinnable row shows its pin button instead (the row is always hovered when
-     the button is visible, so the hint would sit under it). Settings is the one row without a pin button. */
-  .sb-item:hover .sb-kbd, .sb-item:focus-visible .sb-kbd { opacity: 1; }
-  .sb-row[data-pinnable='true'] .sb-kbd { display: none; }
   .sb[data-collapsed='true'] .sb-item { justify-content: center; padding-left: 0; padding-right: 0; }
-  .sb[data-collapsed='true'] :is(.sb-label, .sb-kbd, .sb-title) { display: none; }
+  .sb[data-collapsed='true'] :is(.sb-label, .sb-title) { display: none; }
   /* The list's scrollbar is the app-wide thin one (the `*` rule at the top of this file: `thin`, theme tokens, a
      brighter hover). It is painted over the list's own padding, never beside it, so it takes no width from a
      label: |::-webkit-scrollbar| is 12px, which is exactly the list's right padding (.75rem), so the bar rides

@@ -7,7 +7,7 @@ export function CalculatorTool(props: ModuleProps) {
   return (
     <Suspense
       fallback={
-        <div className="page page-lg calculator-module" aria-busy="true">
+        <div className="page calculator-module" aria-busy="true">
           <header className="calc-head">
             <div className="calc-head-title">
               <h1 className="page-title">Calculator</h1>

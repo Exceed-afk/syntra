@@ -93,9 +93,9 @@ function finish(payload, rows) {
 }
 
 // Never wait forever: an unanswered window is reported as an error instead of leaving the test hanging. The budget
-// is generous on purpose: a cold Electron start can take a while on a busy machine, and a late answer is still a good
+// is generous on purpose (240 s, and the test allows the process 300 s): a cold Electron start can take a while on a busy machine, and a late answer is still a good
 // answer (the test has its own, longer timeout for a process that never starts at all).
-const watchdog = setTimeout(() => finish({ look: LOOK, error: 'the window did not answer within 150 s' }), 150_000)
+const watchdog = setTimeout(() => finish({ look: LOOK, error: 'the window did not answer within 240 s' }), 240_000)
 watchdog.unref()
 
 // A throw-away profile, removed on the way out; one left by an interrupted run is never needed either.
@@ -121,7 +121,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: t
 // finish(): the page's result has no pin probe in it, so nothing here writes to a file that finish() overwrites.
 const PAGE_SCRIPT = (width, height) => `(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-  for (let i = 0; i < 50 && !document.querySelector('.sb-nav .sb-item'); i++) await sleep(100)
+  for (let i = 0; i < 300 && !document.querySelector('.sb-nav .sb-item'); i++) await sleep(100) // up to 30 s of load
   // The sidebar animates its width (0.18s): wait for two identical frames before reading any box.
   let last = -1
   for (let i = 0; i < 40; i++) {
@@ -160,44 +160,38 @@ const PAGE_SCRIPT = (width, height) => `(async () => {
   const foot = document.querySelector('.sb-foot')
   const sb = document.querySelector('.sb')
 
+  // A row is drawn only while its group is open, so focus() on it would scroll nothing: open every group first
+  // (headings and rows are collected again after each click, because React re-renders them). The rows then keep
+  // the heights already measured above.
+  for (const head of [...document.querySelectorAll('.sb-group-head')]) if (head.getAttribute('aria-expanded') === 'false') head.click()
+  await sleep(500)
+
   // Tab order, the list's scrolling and the pin buttons (the checks below read these).
   const visible = (el) => el.getClientRects().length > 0
   const tabStops = [...document.querySelectorAll('.sb button')].filter(visible)
   const order = [...document.querySelectorAll('.sb .sb-item, .sb .sb-group-head')].filter(visible)
-  // The shortcut hint: it must not sit on the name. Every row with a shortcut is hovered in turn (a pinnable row
-  // hides the hint, so only Settings, which has no pin, keeps it on screen) and the hint's box is compared.
-  let hintOverName = []
-  const hoverStyle = document.createElement('style')
-  hoverStyle.textContent = '.measure-hover .sb-kbd { opacity: 1 !important; }'
-  document.head.appendChild(hoverStyle)
-  for (const item of document.querySelectorAll('.sb-nav .sb-item, .sb-foot .sb-item')) {
-    const label = item.querySelector('.sb-label')
-    if (!label) continue
-    item.classList.add('measure-hover')
-    const kbd = item.querySelector('.sb-kbd')
-    const shown = kbd && getComputedStyle(kbd).display !== 'none' && kbd.getBoundingClientRect().width > 0
-    if (shown) {
-      const l = label.getBoundingClientRect()
-      const t = document.createElement('span')
-      t.className = label.className
-      t.textContent = label.textContent
-      t.style.cssText = 'position:fixed;left:-10000px;top:0;white-space:nowrap'
-      document.body.appendChild(t)
-      const textEnd = l.left + t.getBoundingClientRect().width
-      t.remove()
-      if (textEnd > kbd.getBoundingClientRect().left) hintOverName.push(label.textContent)
-    }
-    item.classList.remove('measure-hover')
-  }
-  hoverStyle.remove()
+  // No row carries a shortcut hint any more (no tool has a key of its own; Ctrl+K finds any tool, shared/shortcuts.ts),
+  // so no row may still show one: a hint left behind would sit on a name or claim a key that no longer works.
+  const hintsLeft = [...document.querySelectorAll('.sb-nav .sb-kbd, .sb-foot .sb-kbd, .sb-nav [aria-keyshortcuts], .sb-foot [aria-keyshortcuts]')].length
   // The Utilities group is reachable: scroll the list to its end and read its last row against the list's box.
   nav.scrollTop = nav.scrollHeight
   await sleep(60)
   const navBox = nav.getBoundingClientRect()
-  const utilHead = [...document.querySelectorAll('.sb-group-head')].find((h) => h.textContent.trim().startsWith('Utilities'))
+  const utilHead = [...document.querySelectorAll('.sb-nav .sb-group-head')].find((h) => (h.querySelector('.sb-group-name') || h).textContent.trim() === 'Utilities')
   const lastRow = [...document.querySelectorAll('.sb-nav .sb-row')].pop()
   const lastBox = lastRow ? lastRow.getBoundingClientRect() : null
   const utilitiesReachable = !!utilHead && utilHead.getBoundingClientRect().top >= navBox.top - 1 && !!lastBox && lastBox.bottom <= navBox.bottom + 1
+  nav.scrollTop = 0
+  await sleep(40)
+  // A long list must also scroll when a keyboard user tabs through it: focus a row near its end and read the
+  // list again. (Focusing moves focus as well as scrolling, so the pin probe below picks its own, first row.)
+  const nearEnd = [...document.querySelectorAll('.sb-nav .sb-item')].slice(-3)[0]
+  nearEnd?.focus()
+  await sleep(120)
+  const nearEndBox = nearEnd ? nearEnd.getBoundingClientRect() : null
+  // The focused row must now lie inside the list's visible box (focus scrolls a clipped list to its target).
+  const box = nav.getBoundingClientRect()
+  const reachedByTab = !!nearEndBox && nearEndBox.top >= box.top - 1 && nearEndBox.top < box.top + nav.clientHeight && nearEndBox.bottom <= box.bottom + 1
   nav.scrollTop = 0
   await sleep(40)
 
@@ -217,7 +211,8 @@ const PAGE_SCRIPT = (width, height) => `(async () => {
     // The controls, in DOM (= Tab) order: headings and tool rows only, so a heading comes before its rows.
     order: order.map((el) => el.classList.contains('sb-group-head') ? el.textContent.trim() : (el.querySelector('.sb-label') || {}).textContent).slice(0, 8),
     utilitiesReachable,
-    hintOverName,
+    reachedByTab,
+    hintsLeft,
     // How many rows have a pin button at all (each is reachable with Tab, see Sidebar.tsx).
     pins: [...document.querySelectorAll('.sb-nav .sb-pin')].length,
     footBottom: foot.getBoundingClientRect().bottom,
@@ -283,8 +278,8 @@ app.whenReady().then(async () => {
       nav: `${result.nav.clientH}/${result.nav.scrollH}`, gutter: result.nav.gutter,
       footerBottom: Math.round(result.footBottom),
       tightest: tightest ? `${tightest.name} ${tightest.slack}px` : null, contentBottom: Math.round(result.contentBottom),
-      scrollerFocusable: result.scrollerFocusable, tabStops: result.tabStops, utilitiesReachable: result.utilitiesReachable, order: result.order,
-      hintOverName: result.hintOverName, pins: result.pins,
+      scrollerFocusable: result.scrollerFocusable, tabStops: result.tabStops, utilitiesReachable: result.utilitiesReachable, reachedByTab: result.reachedByTab, order: result.order,
+      hintsLeft: result.hintsLeft, pins: result.pins,
       clipped: all.filter((r) => r.slack < 0).map((r) => r.name),
       names: all.map((r) => r.name),
       pin

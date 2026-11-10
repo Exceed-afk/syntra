@@ -13,7 +13,7 @@
 //   - every theme, light and dark, fits the same names (the look names come from PALETTES in appearance.ts);
 //   - the list scrolls and keeps the footer down at 1280 / 1024 / 700 wide and 600 / 800 high;
 //   - the list is the one scrolling box, the Utilities group is reached by scrolling it, every pinnable row has its
-//     pin button, and the shortcut hint never sits on a name.
+//     pin button, and no row shows a leftover shortcut hint (a tool has no key of its own any more).
 //
 // It skips (with a message) only when the measurement cannot run at all: no Electron installed, or no preview build
 // that can be made. A window that was asked to measure and answers with an error is a FAILURE, never a skip.
@@ -63,7 +63,8 @@ interface Answer {
   scrollerFocusable: boolean
   tabStops: number
   utilitiesReachable: boolean
-  hintOverName: string[]
+  reachedByTab: boolean
+  hintsLeft: number
   pins: number
 }
 interface Rows {
@@ -77,8 +78,8 @@ function look(name: string, extra: string[] = [], wantRows = false, wantNames = 
   const answerFile = join(outDir, `sidebar-measure-${name}.json`)
   rmSync(answerFile, { force: true })
   // A Windows Electron app writes nothing to a captured console, so the answer is a file. The helper exits by itself
-  // (it has its own 150 s watchdog); this timeout only guards against the window process never starting at all.
-  const run = spawnSync(electron, [helper, `--look=${name}`, ...extra], { cwd: root, timeout: 180_000, env: { ...process.env, MEASURE_ID: `${name}${extra.length ? ` ${extra.join(' ')}` : ''}` } })
+  // (it has its own 240 s watchdog); this timeout only guards against the window process never starting at all.
+  const run = spawnSync(electron, [helper, `--look=${name}`, ...extra], { cwd: root, timeout: 300_000, env: { ...process.env, MEASURE_ID: `${name}${extra.length ? ` ${extra.join(' ')}` : ''}` } })
   const why = run.error ? String(run.error.message) : `exit ${run.status ?? run.signal}`
   if (!existsSync(answerFile)) assert.fail(`the measurement window did not answer for "${name}" (${why})`)
   const a = JSON.parse(readFileSync(answerFile, 'utf8')) as Answer
@@ -158,9 +159,10 @@ for (const name of ['default', 'short', 'w1024-h600']) {
   if (name !== 'default') assert.ok(px(a.nav)[1] > px(a.nav)[0], `${name}: the list is taller than its box, so it scrolls`)
   assert.ok(a.tabStops > 15, `${name}: the headings and tools are tab stops (${a.tabStops})`)
   assert.equal(a.pins, a.names.length - 1, `${name}: every pinnable row has its pin button (${a.pins} pins: all but Settings)`)
-  assert.deepEqual(a.hintOverName, [], `${name}: the shortcut hint never sits on a name`)
+  assert.equal(a.hintsLeft, 0, `${name}: no row still shows a shortcut hint (no tool has a key of its own)`)
   assert.equal(a.utilitiesReachable, true, `${name}: scrolling the list reaches the Utilities group`)
-  ok(`${name}: list scrolls on its own, Utilities reachable, ${a.tabStops} tab stops, hints clear of the names`)
+  if (px(a.nav)[1] > px(a.nav)[0]) assert.equal(a.reachedByTab, true, `${name}: keyboard focus on a row near the end scrolls the list to it`) // a list that fits has nothing to scroll
+  ok(`${name}: list scrolls on its own (wheel and keyboard), Utilities reachable, ${a.tabStops} tab stops, no leftover shortcut hints`)
 }
 
 // ---- rows do not shift when the scrollbar appears ----

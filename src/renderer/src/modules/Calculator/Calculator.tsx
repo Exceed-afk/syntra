@@ -287,7 +287,7 @@ export function Calculator(props: ModuleProps) {
   const helpDialog = useModalDialog(showHelp, () => setShowHelp(false))
 
   return (
-    <div className="page page-lg calculator-module">
+    <div className="page calculator-module">
       {/* Header: row 1 title + subtitle, row 2 toolbar. No absolute positioning: the toolbar wraps. */}
       <header className="calc-head">
         <div className="calc-head-title">

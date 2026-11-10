@@ -19,7 +19,7 @@ function useNarrow(): boolean {
   return narrow
 }
 
-// A tooltip: the tool's full name (and its shortcut) beside the row. Shown in the icons-only rail, where the
+// A tooltip: the tool's full name beside the row (no row has a key of its own any more). Shown in the icons-only rail, where the
 // name is hidden, and in the full sidebar when the row's name no longer fits (a very large text size with the
 // widest font, or a long pinned name): tests/sidebar-layout.ts measures every name and the labels stay wide
 // enough that this should never happen, but a cut-off name must never be the end of the story. A `title`
@@ -92,7 +92,7 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinn
   }
 
   const row = (t: ToolDef) => {
-    const hint = t.shortcut ? `Ctrl+${t.shortcut}` : null // the same keys App.tsx listens for
+    // No row has a key of its own any more (Ctrl+K finds any tool), so the tip is the name alone.
     const pinnable = !t.footer
     const isPinned = pinnedIds.has(t.id)
     return (
@@ -100,13 +100,11 @@ export function Sidebar({ active, onSelect, tools: visible = TOOLS, pinned: pinn
         <button className="sb-item" onClick={() => onSelect(t.id)}
           // The native tooltip is the fallback for a name the width has to cut off; the drawn tip (see showTip)
           // shows the same name beside the row and is the one the design checks exercise.
-          title={collapsed ? undefined : hint ? `${t.name} (${hint})` : t.name}
+          title={collapsed ? undefined : t.name}
           aria-label={collapsed ? t.name : undefined} aria-current={t.id === active ? 'page' : undefined}
-          aria-keyshortcuts={t.shortcut ? `Control+${t.shortcut}` : undefined}
-          {...tipHandlers(t.name, hint)}>
+          {...tipHandlers(t.name, null)}>
           <t.icon size={18} />
           <span className="sb-label">{t.name}</span>
-          {hint && <kbd className="sb-kbd" aria-hidden="true">{hint}</kbd>}
         </button>
         {pinnable && !collapsed && (
           <button className="sb-pin" data-pin-for={t.id} onClick={() => togglePin(t.id)}
