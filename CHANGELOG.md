@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.0] - 2026-11-05
 
+### Trades: Analysis tab
+- **Trades > Analysis** uses **its own date range** (default All time) and loads its own list through the existing `trades.list` query with only `from`/`to`. The Trades tab's search, direction, tag and range have no effect on it; a unit check on `analysisDateFilter` and a browser-harness check both prove the independence.
+- **Summary**: net P&L (after fees), win rate with W/L/breakeven, **expectancy (net of fees)**, profit factor, payoff ratio, closed/open. Fewer than 30 closed trades shows a quiet small-sample caption; fewer than 5 replaces all metrics with one hard-gate panel. The two thresholds (`SMALL_SAMPLE_TRADES = 30`, `MIN_GROUP_TRADES = 5`) sit together in `src/shared/tradeAnalysis.ts`.
+- **Equity curve**: closed trades in entry-date then id order (the same as `pnlSeries`), baseline 0 at the range start, largest peak-to-later-trough drawdown as an **amount only** (the help text says no percentage is shown because account size is unknown), peak/trough markers, a one-line summary with the recovery date, an accessible chart label and a collapsible data table. Drawdown shading is never the only signal.
+- **Best/worst trade** (ties listed; best only above 0, worst only below 0), **streaks** (a breakeven ends both), and **breakdowns** by asset, direction, tag, weekday and month with sortable headers (`aria-sort`), blank values last and a "Few trades" badge below 5. No group is ever ranked best or worst.
+- **Asset grouping** trims and ignores case and shows the most common spelling. The Assistant's `pnl_by_asset` still groups by the exact stored string, so the two can differ; documented in the README, Assistant unchanged.
+- **Tests**: `tests/trade-analysis.ts` (30 checks) and `tests/trade-analysis-parity.ts` (6 checks), both in the `npm test` chain. No new dependency, IPC channel, migration or trade field.
+
 ### Phase 12: All-in-one calculator
 - **Calculator** (Utilities): an all-in-one local-only mathematical engine on an exact decimal core (decimal.js) with no dynamic code execution anywhere — the parser/evaluator is AST-based, scripts run in a sandboxed interpreter with a step cap and time limit.
 - **Panels**: standard/scientific, statistics (descriptive, regressions, distributions, hypothesis tests, SVG histogram/box/scatter plots, CSV import), finance (TVM solver, amortization, NPV/IRR/XNPV/XIRR, position sizing), conversions (units, bases 2–36, offline currency rate sets with overrides, stale-rate warnings and audit snapshots), 2D graphing (function/parametric/polar, trace, root/extrema finders, value tables, derivative tool), linear algebra and complex numbers, CAS (simplify, differentiate, integrate, limits, solve, Taylor), programming/bitwise (BigInt 64-bit, two's complement view, saved programs with import/export), and date/time arithmetic.
