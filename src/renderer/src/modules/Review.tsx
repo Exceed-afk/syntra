@@ -16,6 +16,8 @@ import { errMsg } from '../lib/errors'
 import { useRefreshOnCapture } from '../lib/dataChanged'
 import type { ModuleProps } from '../lib/navigation'
 import { PageHeader, PeriodArrows } from '../components/PageHeader'
+import { Toolbar, ToolbarStart } from '../components/Toolbar'
+import { Segmented } from '../components/Segmented'
 import { EmptyState } from '../components/EmptyState'
 import { useSettings } from '../lib/settingsStore'
 import { ProgressBar } from '../components/ProgressBar'
@@ -99,21 +101,25 @@ export function Review({ onOpen, onNavigate }: ModuleProps) { // eslint-disable-
   const step = (delta: number) => setAnchor(shiftRange(kind, range, delta).start)
 
   const header = (
-    <PageHeader title="Review"
-      help={periodLabel(kind, range.start, range.end) + '. One summary of the week or month across trades, savings, habits, tasks and the journal; a saved reflection is a logbook entry tagged review.'}
-      badge={range.end >= now
-        ? <span className="badge badge-open" title={periodLabel(kind, range.start, range.end)}>In progress</span>
-        : <span className="badge badge-done" title={periodLabel(kind, range.start, range.end)}>Complete</span>}>
-      <div className="seg" role="group" aria-label="Review period">
-        <button aria-pressed={kind === 'week'} onClick={() => setKind('week')}>Week</button>
-        <button aria-pressed={kind === 'month'} onClick={() => setKind('month')}>Month</button>
-      </div>
-      <PeriodArrows onPrev={() => step(-1)} onNext={() => step(1)} nextDisabled={range.end >= now}
-        prevLabel={`Previous ${word}`} nextLabel={`Next ${word}`} />
-      {/* Always rendered, so stepping between periods never moves the controls beside it. */}
-      <button className={`btn btn-sm ${isCurrent ? 'invisible' : ''}`} onClick={() => setAnchor(now)} disabled={isCurrent}
-        aria-hidden={isCurrent}>This {word}</button>
-    </PageHeader>
+    <>
+      <PageHeader title="Review"
+        help={periodLabel(kind, range.start, range.end) + '. One summary of the week or month across trades, savings, habits, tasks and the journal; a saved reflection is a logbook entry tagged review.'}
+        badge={range.end >= now
+          ? <span className="badge badge-open" title={periodLabel(kind, range.start, range.end)}>In progress</span>
+          : <span className="badge badge-done" title={periodLabel(kind, range.start, range.end)}>Complete</span>} />
+      {/* One toolbar row: the period switch, the arrows, and the way back to now. */}
+      <Toolbar label="Review period">
+        <ToolbarStart>
+          <Segmented<ReviewKind> label="Review period" kind="group" value={kind} onChange={setKind}
+            options={[{ id: 'week', label: 'Week' }, { id: 'month', label: 'Month' }]} />
+          <PeriodArrows onPrev={() => step(-1)} onNext={() => step(1)} nextDisabled={range.end >= now}
+            prevLabel={`Previous ${word}`} nextLabel={`Next ${word}`} />
+          {/* Always rendered, so stepping between periods never moves the controls beside it. */}
+          <button className={`btn btn-sm ${isCurrent ? 'invisible' : ''}`} onClick={() => setAnchor(now)} disabled={isCurrent}
+            aria-hidden={isCurrent}>This {word}</button>
+        </ToolbarStart>
+      </Toolbar>
+    </>
   )
 
   if (!data) {
@@ -187,31 +193,30 @@ export function ReviewBody({ data, onOpen, onNavigate }: Nav & { data: ReviewDat
 
       {data.spending && data.spending.txCount > 0 && (
         <section className="card card-pad mt-4">
-          <div className="flex items-center justify-between">
+          <div className="card-head">
             <h2 className="card-head-title"><span className="card-head-icon"><Wallet size={15} /></span>Spending in {data.label}</h2>
-            <button className="section-link" onClick={() => onNavigate('expenses')}>Open expenses <ChevronRight size={12} /></button>
+            <button className="card-link" onClick={() => onNavigate('expenses')}>Open expenses <ChevronRight size={12} /></button>
           </div>
-          <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
+          {/* The total and the previous period on the left, the categories in up to two columns on the right. */}
+          <div className="mt-3 grid gap-x-6 gap-y-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
             <div>
               <div className="stat-value mt-0">{fmtAmount(data.spending.totalSpent / 100)}</div>
               <div className="stat-sub">{data.spending.txCount} {data.spending.txCount === 1 ? 'transaction' : 'transactions'}</div>
+              {data.spending.previousSpent > 0 && (
+                <div className="meta mt-1">Previous period: {fmtAmount(data.spending.previousSpent / 100)}</div>
+              )}
             </div>
-            {data.spending.previousSpent > 0 && (
-              <div className="text-xs text-muted">
-                Previous period: {fmtAmount(data.spending.previousSpent / 100)}
-              </div>
+            {data.spending.topCategories.length > 0 && (
+              <ul className="flex flex-col gap-1.5 text-xs md:grid md:grid-cols-2 md:gap-x-6 md:border-l md:border-line md:pl-4">
+                {data.spending.topCategories.map((c) => (
+                  <li key={c.id} className="flex justify-between items-center gap-3 text-muted">
+                    <span className="truncate">{c.name}</span>
+                    <span className="shrink-0 font-medium text-fg">{fmtAmount(c.amount / 100)}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-          {data.spending.topCategories.length > 0 && (
-            <ul className="mt-3 flex flex-col gap-1.5 border-t border-line pt-2 text-xs">
-              {data.spending.topCategories.map((c) => (
-                <li key={c.id} className="flex justify-between items-center text-muted">
-                  <span>{c.name}</span>
-                  <span className="font-medium text-fg">{fmtAmount(c.amount / 100)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
         </section>
       )}
 
