@@ -16,6 +16,9 @@ import { TagChip } from '../../../renderer/src/components/TagChip'
 import { errMsg } from '../../../renderer/src/lib/errors'
 import { useRefreshOnCapture } from '../../../renderer/src/lib/dataChanged'
 import { normalizeTagName } from '../../../shared/tags'
+import { Toolbar, ToolbarStart, ToolbarEnd } from '../../../renderer/src/components/Toolbar'
+import { Segmented } from '../../../renderer/src/components/Segmented'
+import { ConfirmDialog } from '../../../renderer/src/components/ConfirmDialog'
 
 interface TaggedItem { type: TagEntityType; id: number; label: string; sublabel?: string }
 
@@ -30,8 +33,6 @@ const TOOL_LABEL: Record<TagEntityType, string> = {
 
 const TOOL_ORDER: TagEntityType[] = ['logbook', 'trade', 'goal', 'task', 'note', 'content']
 
-// A one-pixel SVG of the tag's own colour, used as a background image so the
-// swatch shows the real colour without an inline colour style.
 const swatch = (hex: string): string =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect width='1' height='1' fill='${hex.replace(/'/g, '')}'/></svg>`)}")`
 
@@ -49,6 +50,9 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
   const [merging, setMerging] = useState(false)
   const [mergeInto, setMergeInto] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmMerge, setConfirmMerge] = useState(false)
+  const [listQuery, setListQuery] = useState('')
+  const [sort, setSort] = useState<'most' | 'az'>('most')
 
   const refresh = useCallback(async () => {
     try {
@@ -86,6 +90,21 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
 
   const current = selected ? entries.find((e) => e.tag.name === selected) ?? null : null
 
+  const filteredEntries = useMemo(() => {
+    const q = listQuery.trim().toLowerCase()
+    let list = entries
+    if (q) list = list.filter((e) => e.tag.name.toLowerCase().includes(q))
+    if (sort === 'az') {
+      list = [...list].sort((a, b) => a.tag.name.localeCompare(b.tag.name))
+    } else {
+      list = [...list].sort((a, b) => total(b.counts) - total(a.counts) || a.tag.name.localeCompare(b.tag.name))
+    }
+    return list
+  }, [entries, listQuery, sort])
+
+  const usedOnce = useMemo(() => entries.filter((e) => total(e.counts) === 1).length, [entries])
+  const topFive = useMemo(() => [...entries].sort((a, b) => total(b.counts) - total(a.counts) || a.tag.name.localeCompare(b.tag.name)).slice(0, 5), [entries])
+
   // ------------------------------------------------------------------ actions
 
   const rename = async () => {
@@ -113,6 +132,7 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
     try {
       await window.api.tags.merge(selected, mergeInto)
       setMerging(false)
+      setConfirmMerge(false)
       setSelected(mergeInto)
       setNote(`Merged #${selected} into #${mergeInto}.`)
       await refresh()
@@ -171,8 +191,9 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
   }
 
   return (
-    <div className="page">
-      <PageHeader title="Tags" subtitle="Every tag in one place, across every tool. Renaming or merging applies everywhere." />
+    <div className="page page-wide">
+      <PageHeader title="Tags" help="Every tag in one place, across every tool. Renaming or merging applies everywhere." />
+
       {error && <p role="alert" className="mb-3 text-sm text-neg">{error}</p>}
       {note && <p role="status" className="mb-3 text-sm text-muted">{note}</p>}
 
@@ -180,31 +201,52 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
         <EmptyState icon={TagsIcon} title="No tags yet"
           text="Add a tag to a journal entry, a trade, a task or a note and it appears here, with counts for every tool." />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
-          <section className="card card-pad-lg">
-            <h2 className="section-title">All tags <span className="meta">({entries.length})</span></h2>
-            <ul className="mt-3 flex flex-col divide-y divide-line/60">
-              {entries.map((e) => {
-                const n = total(e.counts)
-                return (
-                  <li key={e.tag.id}>
-                    <button
-                      onClick={() => { setSelected(e.tag.name); setRenaming(null); setMerging(false); setConfirmDelete(false); setNote('') }}
-                      aria-current={selected === e.tag.name ? 'true' : undefined}
-                      className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left ${selected === e.tag.name ? 'bg-accent/10' : 'hover:bg-fg/5'}`}
-                    >
-                      <span className="min-w-0"><TagChip tag={e.tag.name} /></span>
-                      <span className="shrink-0 num text-xs text-muted">{n}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+        <div className="grid gap-4 lg:grid-cols-[22.5rem_minmax(0,1fr)]">
+          <section className="card card-pad flex flex-col">
+            <div className="max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
+              <div className="sticky top-0 z-10 bg-card pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="section-title">All tags <span className="meta">({filteredEntries.length})</span></h2>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input className="field flex-1" placeholder="Filter tags" aria-label="Filter tags by name" value={listQuery} onChange={(e) => setListQuery(e.target.value)} />
+                  <Segmented label="Sort tags" kind="group" value={sort} onChange={setSort}
+                    options={[{ id: 'most', label: 'Most used' }, { id: 'az', label: 'A-Z' }]} size="sm" />
+                </div>
+              </div>
+              <ul className="mt-2 flex flex-col gap-1">
+                {filteredEntries.map((e) => {
+                  const n = total(e.counts)
+                  return (
+                    <li key={e.tag.id}>
+                      <button
+                        onClick={() => { setSelected(e.tag.name); setRenaming(null); setMerging(false); setConfirmDelete(false); setConfirmMerge(false); setNote('') }}
+                        aria-current={selected === e.tag.name ? 'true' : undefined}
+                        className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2 text-left ${selected === e.tag.name ? 'bg-accent/10' : 'hover:bg-fg/5'}`}
+                      >
+                        <span className="min-w-0"><TagChip tag={e.tag.name} /></span>
+                        <span className="shrink-0 num text-xs text-muted">{n}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
           </section>
 
           <section className="card card-pad-lg">
             {!current ? (
-              <EmptyState compact icon={TagsIcon} title="Pick a tag" text="Its items appear here, grouped by tool, with rename, merge, colour and delete." />
+              <div className="card card-pad">
+                <p className="text-sm font-medium">Tags at a glance</p>
+                <p className="mt-1 text-xs text-muted">{entries.length} tags · {usedOnce} used once</p>
+                <div className="mt-3">
+                  <p className="mb-1 text-xs text-muted">Top tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {topFive.map((e) => <TagChip key={e.tag.id} tag={e.tag.name} />)}
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-muted">Pick a tag on the left to rename, merge, colour or delete it.</p>
+              </div>
             ) : (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -218,9 +260,9 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button className="btn btn-sm" onClick={() => { setRenaming(current.tag.name); setRenameText(current.tag.name); setMerging(false); setConfirmDelete(false) }}>Rename</button>
-                    <button className="btn btn-sm" onClick={() => { setMerging(true); setRenaming(null); setMergeInto(''); setConfirmDelete(false) }}>Merge</button>
-                    <button className="btn btn-sm text-neg" onClick={() => { setConfirmDelete(true); setRenaming(null); setMerging(false) }}>Delete</button>
+                    <button className="btn btn-sm" onClick={() => { setRenaming(current.tag.name); setRenameText(current.tag.name); setMerging(false); setConfirmDelete(false); setConfirmMerge(false) }}>Rename</button>
+                    <button className="btn btn-sm" onClick={() => { setMerging(true); setRenaming(null); setMergeInto(''); setConfirmDelete(false); setConfirmMerge(false) }}>Merge</button>
+                    <button className="btn btn-sm text-neg" onClick={() => { setConfirmDelete(true); setRenaming(null); setMerging(false); setConfirmMerge(false) }}>Delete</button>
                   </div>
                 </div>
 
@@ -235,7 +277,7 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
                 )}
 
                 {merging && (
-                  <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); void merge() }}>
+                  <div className="flex flex-wrap items-end gap-2">
                     <label className="block text-xs text-muted">Merge #{current.tag.name} into
                       <select className="field mt-1" value={mergeInto} onChange={(e) => setMergeInto(e.target.value)} aria-label="Tag to merge into">
                         <option value="">Pick a tag…</option>
@@ -244,28 +286,37 @@ export function TagsPage({ onNavigate, onOpen }: ModuleProps) {
                         ))}
                       </select>
                     </label>
-                    <button className="btn-primary btn-sm" type="submit" disabled={!mergeInto}>Merge</button>
-                    <button className="btn btn-sm" type="button" onClick={() => setMerging(false)}>Cancel</button>
-                  </form>
+                    <button className="btn-primary btn-sm" type="button" disabled={!mergeInto} onClick={() => setConfirmMerge(true)}>Merge</button>
+                    <button className="btn btn-sm" type="button" onClick={() => { setMerging(false); setMergeInto('') }}>Cancel</button>
+                  </div>
                 )}
 
                 {confirmDelete && (
-                  <div className="rounded-xl border border-line p-3 text-sm">
-                    <p>Remove <strong>#{current.tag.name}</strong> from every item?</p>
-                    <p className="meta mt-1">The items stay exactly as they are — only the tag goes.</p>
-                    <div className="mt-3 flex gap-2">
-                      <button className="btn-danger btn-sm" onClick={() => void remove()}>Remove the tag</button>
-                      <button className="btn btn-sm" onClick={() => setConfirmDelete(false)}>Keep it</button>
-                    </div>
-                  </div>
+                  <ConfirmDialog
+                    open={confirmDelete}
+                    onClose={() => setConfirmDelete(false)}
+                    title="Delete the tag?"
+                    text={`Remove #${current.tag.name} from every item? The items stay exactly as they are — only the tag goes.`}
+                    confirmLabel="Delete"
+                    tone="danger"
+                    onConfirm={() => void remove()}
+                  />
+                )}
+
+                {confirmMerge && mergeInto && (
+                  <ConfirmDialog
+                    open={confirmMerge}
+                    onClose={() => setConfirmMerge(false)}
+                    title="Merge tags?"
+                    text={`Merge #${current.tag.name} into #${mergeInto} everywhere?`}
+                    confirmLabel="Merge"
+                    onConfirm={() => void merge()}
+                  />
                 )}
 
                 <div>
                   <h3 className="section-title">Colour</h3>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {/* The swatch colour is the tag's stored value (data, not a design
-                        token), so it is drawn as a data-URI fill - an inline style
-                        colour would be a hardcoded colour, which the UI rules forbid. */}
                     {[null, '#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'].map((c) => (
                       <button key={c ?? 'default'} onClick={() => void recolour(current.tag.name, c)}
                         aria-label={c === null ? `Default colour for ${current.tag.name}` : `Colour ${c}`}
