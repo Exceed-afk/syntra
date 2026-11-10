@@ -9,7 +9,7 @@
 // Order matters: tools are listed in this order inside their category, and the FIRST tool is the start page.
 // Optional: `footer: true` keeps a tool at the bottom of the sidebar (users cannot pin or unpin it).
 import type { ComponentType } from 'react'
-import { LayoutDashboard, ClipboardCheck, CalendarDays, BookOpen, CandlestickChart, PiggyBank, CalendarCheck, CheckSquare, Search, Settings as Cog, Brain, Sunrise, Lightbulb, MessageCircleQuestion, Trash2, Receipt, Tags as TagsIcon, StickyNote, Clapperboard, Timer, Wrench, Calculator as CalculatorIcon, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, ClipboardCheck, CalendarDays, BookOpen, CandlestickChart, PiggyBank, CalendarCheck, CheckSquare, Search, Settings as Cog, Sunrise, Lightbulb, MessageCircleQuestion, Trash2, Receipt, Tags as TagsIcon, StickyNote, Clapperboard, Timer, Wrench, Calculator as CalculatorIcon, type LucideIcon } from 'lucide-react'
 import { validateTools, type ToolMeta } from '../../shared/tools'
 import type { ModuleProps } from './lib/navigation'
 import { Dashboard } from './modules/Dashboard'
@@ -23,7 +23,6 @@ import { Tasks } from './modules/Tasks'
 import { Trash } from './modules/Trash'
 import { Search as SearchPage } from './modules/Search'
 import { SettingsPage } from './modules/SettingsPage'
-import { Intelligence } from './modules/Intelligence'
 import { Briefing } from './modules/Briefing'
 import { Insights } from './modules/Insights'
 import { Assistant } from './modules/Assistant'
@@ -112,9 +111,6 @@ export const TOOLS: ToolDef[] = [
     keywords: ['content', 'video', 'youtube', 'stream', 'shorts', 'pipeline', 'publish', 'ideas', 'script'], component: Content,
     contract: { search: { type: 'content', textFields: ['title', 'hook', 'platform', 'series', 'tags'], supportsTags: true },
       linkable: { type: 'content', label: 'Content item' }, calendar: true, insights: true } },
-  { id: 'intelligence', name: 'Intelligence', icon: Brain, route: '/intelligence', category: 'productivity',
-    keywords: ['intelligence', 'ai', 'settings', 'features', 'daily briefing', 'automations', 'smart', 'insights'], component: Intelligence,
-    contract: { insights: true } },
   { id: 'notes', name: 'Notes', icon: StickyNote, route: '/notes', category: 'notes',
     keywords: ['notes', 'markdown', 'memo', 'wiki', 'idea', 'meeting', 'checklist', 'reference'], component: Notes,
     contract: { search: { type: 'note', textFields: ['title', 'body', 'tags'], supportsTags: true },

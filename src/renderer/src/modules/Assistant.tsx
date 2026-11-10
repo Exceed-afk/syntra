@@ -67,7 +67,7 @@ export function Assistant() {
     <div className="page">
       <PageHeader title="Assistant" help={
         settings === null ? 'Loading…'
-          : settings.provider === 'off' ? 'Off. Choose a provider on the Intelligence page.'
+          : settings.provider === 'off' ? 'Off. Choose a provider under Settings → Intelligence.'
             : settings.provider === 'local' ? `Local model at ${settings.localUrl}. Follow-ups include only the previous function, range and filters — never its result.`
               : `Cloud provider at ${settings.cloudUrl}. Each question and the previous request's function, date range and filters for follow-ups are sent over the internet — see under every answer what was sent.`
       } />
@@ -75,7 +75,7 @@ export function Assistant() {
       {settings && settings.provider === 'off' && (
         <div className="mt-5">
           <EmptyState icon={MessageCircleQuestion} title="The assistant is off"
-            text="Nothing has ever been sent. To use it, pick Local model or Cloud under Intelligence → AI provider — Cloud asks for an explicit confirmation first."
+            text="Nothing has ever been sent. To use it, pick Local model or Cloud under Settings → Intelligence → AI provider — Cloud asks for an explicit confirmation first."
             action={<span className="meta">Ctrl+K → “intelligence”</span>} />
         </div>
       )}
@@ -85,20 +85,20 @@ export function Assistant() {
           {settings.provider === 'cloud' && !settings.cloudConfirmed && (
             <section className="card card-pad mt-5" aria-live="polite">
               <div className="card-head"><h2 className="card-head-title">Confirmation needed</h2></div>
-              <p className="mt-2 text-sm">Cloud mode sends each question to {settings.cloudUrl}. Confirm it on the Intelligence page before anything can be asked here.</p>
+              <p className="mt-2 text-sm">Cloud mode sends each question to {settings.cloudUrl}. Confirm it under Settings → Intelligence before anything can be asked here.</p>
             </section>
           )}
           {settings.provider === 'cloud' && settings.cloudConfirmed && keyState && keyStateLabel(keyState) === 'none' && (
             <section className="card card-pad mt-5">
               <div className="card-head"><h2 className="card-head-title">No API key yet</h2></div>
-              <p className="mt-2 text-sm">Paste your key on the Intelligence page. It is stored with the operating system's encryption (never in plain text), never shown again, and never included in exports. Automatic local database copies may contain the encrypted blob.</p>
+              <p className="mt-2 text-sm">Paste your key under Settings → Intelligence. It is stored with the operating system's encryption (never in plain text), never shown again, and never included in exports. Automatic local database copies may contain the encrypted blob.</p>
               {keyState && !keyState.encryptionOk && <p className="mt-2 text-sm text-neg">This system cannot encrypt keys right now, so none can be saved.</p>}
             </section>
           )}
           {settings.provider === 'cloud' && keyState && keyStateLabel(keyState) === 'unreadable' && (
             <section className="card card-pad mt-5" role="alert">
               <div className="card-head"><h2 className="card-head-title">API key unavailable</h2></div>
-              <p className="mt-2 text-sm">A key is saved but cannot be read on this computer. Paste it again on the Intelligence page.</p>
+              <p className="mt-2 text-sm">A key is saved but cannot be read on this computer. Paste it again under Settings → Intelligence.</p>
             </section>
           )}
 

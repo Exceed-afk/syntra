@@ -9,15 +9,16 @@ import { TagChip } from '../components/TagChip'
 import { AppearanceSettings } from '../components/AppearanceSettings'
 import { CaptureSettings } from '../components/CaptureSettings'
 import { TemplatesSettings } from '../components/TemplatesSettings'
+import { Intelligence } from './Intelligence'
 import { PageHeader } from '../components/PageHeader'
 import { Segmented } from '../components/Segmented'
 import { SwitchRow } from '../components/SwitchRow'
 import { TOOLS } from '../tools' // circular with the registry, but only read while rendering, never at load time
 import { TOOL_CATEGORIES } from '../../../shared/tools'
 
-type Tab = 'appearance' | 'modules' | 'templates' | 'capture' | 'tags' | 'data' | 'shortcuts'
+type Tab = 'appearance' | 'modules' | 'templates' | 'capture' | 'tags' | 'data' | 'shortcuts' | 'intelligence'
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'appearance', label: 'Appearance' }, { id: 'modules', label: 'Modules' }, { id: 'templates', label: 'Templates' }, { id: 'capture', label: 'Quick capture' }, { id: 'tags', label: 'Tags' }, { id: 'data', label: 'Data' }, { id: 'shortcuts', label: 'Shortcuts' }
+  { id: 'appearance', label: 'Appearance' }, { id: 'modules', label: 'Modules' }, { id: 'templates', label: 'Templates' }, { id: 'capture', label: 'Quick capture' }, { id: 'tags', label: 'Tags' }, { id: 'data', label: 'Data' }, { id: 'shortcuts', label: 'Shortcuts' }, { id: 'intelligence', label: 'Intelligence' }
 ]
 
 export function SettingsPage() {
@@ -173,6 +174,8 @@ export function SettingsPage() {
         )}
       </section>
       )}
+
+      {tab === 'intelligence' && <Intelligence embedded />}
 
       {tab === 'data' && (<>
       <section className="card card-pad-lg">

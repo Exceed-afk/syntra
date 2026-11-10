@@ -34,7 +34,7 @@ const FEATURES: { key: keyof IntelligenceFeatureToggles; name: string; descripti
   { key: 'aiAssistant', name: 'AI assistant', description: 'An AI helper that can answer questions about your data. Needs an AI provider to be chosen under Assistant.' }
 ]
 
-export function Intelligence() {
+export function Intelligence({ embedded = false }: { embedded?: boolean } = {}) {
   const s = useSettings()
   const features = s.intelligence?.features ?? DEFAULT_INTELLIGENCE.features
   const [automations, setAutomations] = useState<AutomationSettings>(DEFAULT_AUTOMATIONS)
@@ -78,7 +78,7 @@ export function Intelligence() {
 
   return (
     <div className="page">
-      <PageHeader title="Intelligence" help="Turn individual features on or off. Everything runs on your computer unless you choose Cloud for the assistant." />
+      {!embedded && <PageHeader title="Intelligence" help="Turn individual features on or off. Everything runs on your computer unless you choose Cloud for the assistant." />}
 
       {saveError && <p role="alert" className="mb-3 text-sm text-neg">{saveError}</p>}
 
