@@ -71,7 +71,8 @@ export interface ToolMeta {
   route: string // "/trades". Another way to name the same place (see findTool).
   category: ToolCategory
   keywords: string[] // lowercase words that should find this tool in search
-  shortcut?: string // "1" to "9": Ctrl+<digit> opens it. Leave out for most tools.
+  // (There is no per-tool key: every tool is reached through the command palette, Ctrl+K / Cmd+K. The app's few
+  // global keys are in shared/shortcuts.ts.)
   footer?: boolean // sits at the bottom of the sidebar, always visible, and cannot be pinned (Settings)
   // What this module contributes beyond its page (see ModuleContract).
   contract?: ModuleContract
@@ -80,13 +81,13 @@ export interface ToolMeta {
 }
 
 // Returns a list of mistakes (empty = fine), so a typo in one entry gives a clear message
-// instead of a blank screen or a shortcut that quietly opens the wrong page.
+// instead of a blank screen or two rows that cannot be told apart.
 export function validateTools(tools: ToolMeta[]): string[] {
   const problems: string[] = []
   if (tools.length === 0) problems.push('The registry is empty.')
-  const seen = { id: new Set<string>(), route: new Set<string>(), shortcut: new Set<string>() }
+  const seen = { id: new Set<string>(), route: new Set<string>() }
   const categories = new Set<string>(TOOL_CATEGORIES.map((c) => c.id))
-  const once = (kind: 'id' | 'route' | 'shortcut', value: string, who: string) => {
+  const once = (kind: 'id' | 'route', value: string, who: string) => {
     if (seen[kind].has(value)) problems.push(`${who}: the ${kind} "${value}" is already used by another tool.`)
     seen[kind].add(value)
   }
@@ -99,10 +100,6 @@ export function validateTools(tools: ToolMeta[]): string[] {
     else once('route', t.route, who)
     if (!categories.has(t.category)) problems.push(`${who}: unknown category "${t.category}".`)
     if (t.keywords.some((k) => !k.trim() || k !== k.trim().toLowerCase())) problems.push(`${who}: keywords must be non-empty and lowercase.`)
-    if (t.shortcut !== undefined) {
-      if (!/^[1-9]$/.test(t.shortcut)) problems.push(`${who}: the shortcut must be a single digit from 1 to 9.`)
-      else once('shortcut', t.shortcut, who)
-    }
     // Module contract: a declared linkable type must be a real one, so the
     // Links service and the user can never meet a type nobody answers for.
     if (t.contract?.linkable) {

@@ -3,13 +3,15 @@ import type { ImportPreview } from '../../../shared/types'
 import { today } from '../lib/dates'
 import { errMsg } from '../lib/errors'
 import { TAG_PALETTE, setTagColors, useTagColors } from '../lib/tagColors'
-import { useSettings, updateSettings } from '../lib/settingsStore'
+import { useSettings, updateSettings, PLATFORM } from '../lib/settingsStore'
+import { primaryLabel, shortcutRows } from '../../../shared/shortcuts'
 import { TagChip } from '../components/TagChip'
 import { AppearanceSettings } from '../components/AppearanceSettings'
 import { CaptureSettings } from '../components/CaptureSettings'
 import { TemplatesSettings } from '../components/TemplatesSettings'
 import { PageHeader } from '../components/PageHeader'
 import { TOOLS } from '../tools' // circular with the registry, but only read while rendering, never at load time
+import { TOOL_CATEGORIES } from '../../../shared/tools'
 
 type Tab = 'appearance' | 'modules' | 'templates' | 'capture' | 'tags' | 'data' | 'shortcuts'
 const TABS: { id: Tab; label: string }[] = [
@@ -84,7 +86,7 @@ export function SettingsPage() {
         <section className="card card-pad-lg">
           <h2 className="section-title">Modules</h2>
           <p className="mt-2 text-sm text-muted">
-            Toggle modules on or off to keep your sidebar focused on the tools you use. Disabled modules are hidden from navigation and the command palette.
+            Toggle modules on or off to keep your sidebar focused on the tools you use. Disabled modules are hidden from navigation and the command palette (so {primaryLabel(PLATFORM)}+K no longer finds them until they are on again).
           </p>
           <ul className="mt-4 flex flex-col divide-y divide-line/60">
             {TOOLS.filter((t) => !t.footer && t.id !== 'dashboard').map((t) => {
@@ -98,7 +100,7 @@ export function SettingsPage() {
                     </span>
                     <div>
                       <div className="text-sm font-medium">{t.name}</div>
-                      <div className="text-xs capitalize text-muted">{t.category}</div>
+                      <div className="text-xs text-muted">{TOOL_CATEGORIES.find((c) => c.id === t.category)?.name ?? t.category}</div>
                     </div>
                   </div>
                   <button
@@ -135,14 +137,22 @@ export function SettingsPage() {
       {tab === 'shortcuts' && (
         <section className="card card-pad-lg">
           <h2 className="section-title">Keyboard shortcuts</h2>
-          <ul className="mt-4 flex flex-col divide-y divide-line/60 text-sm">
-            {TOOLS.filter((t) => t.shortcut).map((t) => (
-              <li key={t.id} className="flex items-center justify-between py-2"><span>Go to {t.name}</span><kbd className="kbd">Ctrl+{t.shortcut}</kbd></li>
-            ))}
-            <li className="flex items-center justify-between py-2"><span>Command palette: jump to any tool (Cmd+K on a Mac)</span><kbd className="kbd">Ctrl+K</kbd></li>
-            <li className="flex items-center justify-between py-2"><span>New item on the current page</span><kbd className="kbd">Ctrl+N</kbd></li>
-            <li className="flex items-center justify-between py-2"><span>Collapse or expand the sidebar</span><kbd className="kbd">Ctrl+B</kbd></li>
-          </ul>
+          {/* Built from shared/shortcuts.ts, the same list App.tsx's key handler reads, so the two cannot drift.
+              "Cmd" replaces "Ctrl" on a Mac (PLATFORM). A numbered "go to a tool" key no longer exists: Ctrl+K
+              (Cmd+K) jumps to any tool. */}
+          {(['Everywhere', 'On some pages'] as const).map((group) => (
+            <div key={group} className="mt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{group}</h3>
+              <ul className="mt-1 flex flex-col divide-y divide-line/60 text-sm">
+                {shortcutRows(PLATFORM).filter((r) => r.group === group).map((r) => (
+                  <li key={r.description} className="flex items-center justify-between gap-4 py-2">
+                    <span>{r.description}</span><kbd className="kbd whitespace-nowrap">{r.keys}</kbd>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p className="mt-4 text-sm text-muted">Any tool is two keystrokes away: press {primaryLabel(PLATFORM)}+K and type part of its name.</p>
         </section>
       )}
 

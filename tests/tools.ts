@@ -13,13 +13,12 @@ const tool = (over: Partial<ToolMeta> = {}): ToolMeta =>
 const bad = (list: ToolMeta[], pattern: RegExp) => assert.ok(validateTools(list).some((p) => pattern.test(p)), `expected a problem matching ${pattern}`)
 
 test('a correct list has no problems', () => {
-  assert.deepEqual(validateTools([tool(), tool({ id: 'todo', name: 'To-do', route: '/todo', shortcut: '3' }), tool({ id: 'settings', name: 'Settings', route: '/settings', footer: true })]), [])
+  assert.deepEqual(validateTools([tool(), tool({ id: 'todo', name: 'To-do', route: '/todo' }), tool({ id: 'settings', name: 'Settings', route: '/settings', footer: true })]), [])
 })
 test('an empty registry is a problem', () => bad([], /empty/))
-test('duplicate ids, routes and shortcuts are caught', () => {
+test('duplicate ids and routes are caught', () => {
   bad([tool(), tool({ route: '/other' })], /id "notes" is already used/)
   bad([tool(), tool({ id: 'other' })], /route "\/notes" is already used/)
-  bad([tool({ shortcut: '2' }), tool({ id: 'other', route: '/other', shortcut: '2' })], /shortcut "2" is already used/)
 })
 test('ids and routes must have a clean shape', () => {
   bad([tool({ id: 'My Notes' })], /id must be/)
@@ -35,8 +34,8 @@ test('keywords must be lowercase and non-empty', () => {
   bad([tool({ keywords: ['Memo'] })], /keywords/)
   bad([tool({ keywords: [''] })], /keywords/)
 })
-test('shortcuts are a single digit 1-9 (Ctrl+K, B and N are taken)', () => {
-  for (const s of ['0', '10', 'k', 'b', 'n', '']) bad([tool({ shortcut: s })], /shortcut must be/)
+test('a tool has no shortcut of its own: a leftover `shortcut` field is simply ignored, never rejected', () => {
+  assert.deepEqual(validateTools([{ ...tool(), shortcut: '3' } as ToolMeta]), [])
 })
 test('the start page cannot be a footer tool', () => bad([tool({ footer: true })], /start page/))
 

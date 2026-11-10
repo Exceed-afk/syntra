@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Sidebar, SIDEBAR_NARROW } from './components/Sidebar'
 import { PaletteHost } from './components/PaletteHost'
 import { UndoToast } from './components/UndoToast'
-import { START_TOOL, TOOLS, findTool, toolByShortcut } from './tools'
-import { getCurrentSettings, loadSettings, updateSettings, useSettings } from './lib/settingsStore'
+import { START_TOOL, TOOLS, findTool } from './tools'
+import { getCurrentSettings, loadSettings, updateSettings, useSettings, PLATFORM } from './lib/settingsStore'
 import { ErrorBoundary } from './lib/error-boundary'
 import type { OpenTarget } from './lib/navigation'
 import { pushRecent } from '../../shared/palette'
+import { UNDO_SHORTCUT_KEY } from '../../shared/shortcuts'
 import { DEFAULT_INTELLIGENCE, type Settings } from '../../shared/types'
 import { undoLastDelete } from './lib/undo'
 
@@ -50,12 +51,20 @@ export default function App() {
   // Load the saved look (theme, colours, tag colours) once at startup.
   useEffect(() => { loadSettings() }, [])
 
-  // Ctrl+K (Cmd+K on a Mac) opens or closes the command palette. Ctrl+<digit> opens the tool that declares that
-  // shortcut (see tools.ts). Ctrl+B collapses or expands the sidebar.
-  // Ctrl+Z (Cmd+Z) undoes the newest delete of the session (Phase 0).
+  // TEMP-PROBE-23: is this App alive at all (click reachable / effect ran)?
+  useEffect(() => { (window as unknown as { __appProbe?: string }).__appProbe = 'mounted' }, [])
+  // The global shortcuts, read from shared/shortcuts.ts (the same list Settings > Shortcuts shows): Ctrl+K / Cmd+K
+  // opens or closes the command palette, Ctrl+, / Cmd+, opens Settings, Ctrl+B / Cmd+B collapses or expands the
+  // sidebar. Ctrl+N is read by each page (a new item there). Ctrl+Z (Cmd+Z) undoes the newest delete of the session.
+  // There is no "go to this tool" key: the palette finds any tool.
   useEffect(() => {
+    // TEMP-PROBE-23
+    ;(window as unknown as { __appHandler?: string }).__appHandler = 'installed'
+    // Ctrl on Windows and Linux, Cmd on a Mac: the same modifier the Settings list names.
+    const isPrimary = (e: KeyboardEvent) => (PLATFORM === 'darwin' ? e.metaKey : e.ctrlKey)
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'z') {
+
+      if (isPrimary(e) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === UNDO_SHORTCUT_KEY) {
         e.preventDefault() // the app has no text-history undo; the delete undo owns this key
         // A restore that fails (its table is gone, say) must not become an
         // unhandled promise rejection: the undo toast reports it instead.
@@ -64,21 +73,20 @@ export default function App() {
           .catch((error) => console.error('Undo failed:', error))
         return
       }
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+      if (!isPrimary(e) || e.altKey || e.shiftKey) return
+      const key = e.key.toLowerCase()
+      if (key === 'k') {
         e.preventDefault()
         if (!e.repeat) setPaletteOpen((o) => !o) // holding the keys down must not flicker it open and shut
-        return
-      }
-      if (!e.ctrlKey) return
-      if (e.key.toLowerCase() === 'b') {
+      } else if (key === ',') {
+        e.preventDefault()
+        navigate('settings')
+      } else if (key === 'b') {
         e.preventDefault()
         // In a narrow window the sidebar is icons-only whatever the setting says (and the button is disabled), so
         // flipping the saved choice would change nothing on screen and surprise the user when the window is widened.
         if (!matchMedia(SIDEBAR_NARROW).matches) updateSettings({ sidebarCollapsed: !getCurrentSettings().sidebarCollapsed })
-        return
       }
-      const t = toolByShortcut(e.key)
-      if (t) { e.preventDefault(); navigate(t.id) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

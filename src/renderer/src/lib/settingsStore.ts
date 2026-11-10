@@ -10,6 +10,12 @@ const CACHE_KEY = 'appearance-cache'
 let current: Settings = DEFAULT_SETTINGS
 const listeners = new Set<() => void>()
 
+// The operating system, for key labels (Cmd on a Mac): "darwin", "win32"… electron-vite builds the renderer for the
+// browser, so `process` is only there in the real app; in the preview the browser's platform is read instead.
+export const PLATFORM: string =
+  typeof process !== 'undefined' && process.platform ? process.platform
+    : typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.userAgent) ? 'darwin' : 'win32'
+
 function set(next: Settings): void {
   current = next
   applyAppearance(next)

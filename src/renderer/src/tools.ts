@@ -40,12 +40,13 @@ export interface ToolDef extends ToolMeta {
   component: ComponentType<ModuleProps>
 }
 
-// `shortcut` keeps Ctrl+1..7 exactly where they have always been. New tools normally leave it out.
+// There is no per-tool shortcut: Ctrl+K (Cmd+K on a Mac) finds any tool through the command palette, so the sidebar
+// does not grow a key per tool. (Settings also has no key of its own; it is on the Dock's footer and in the palette.)
 // `contract` is the Phase 0 module contract: what the module contributes
 // beyond its page (search, links, quick capture), so nothing else has to know
 // these modules by name. See src/shared/tools.ts.
 export const TOOLS: ToolDef[] = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, route: '/dashboard', category: 'overview', shortcut: '1',
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, route: '/dashboard', category: 'overview',
     keywords: ['home', 'overview', 'summary', 'today'], component: Dashboard,
     contract: { dashboard: true, insights: true } },
   { id: 'review', name: 'Review', icon: ClipboardCheck, route: '/review', category: 'overview',
@@ -63,15 +64,15 @@ export const TOOLS: ToolDef[] = [
   { id: 'calendar', name: 'Calendar', icon: CalendarDays, route: '/calendar', category: 'overview',
     keywords: ['month', 'schedule', 'agenda', 'day', 'date', 'activity', 'history', 'planner'], component: Calendar,
     contract: { calendar: true, insights: false } },
-  { id: 'logbook', name: 'Logbook', icon: BookOpen, route: '/logbook', category: 'notes', shortcut: '2',
+  { id: 'logbook', name: 'Logbook', icon: BookOpen, route: '/logbook', category: 'notes',
     keywords: ['journal', 'diary', 'entries', 'notes', 'mood', 'log'], component: Logbook,
     contract: { search: { type: 'logbook', textFields: ['title', 'body', 'tags', 'date'], supportsTags: true },
       linkable: { type: 'logbook', label: 'Journal entry' }, quickCapture: ['note'], calendar: true, insights: true } },
-  { id: 'trades', name: 'Trades', icon: CandlestickChart, route: '/trades', category: 'money', shortcut: '3',
+  { id: 'trades', name: 'Trades', icon: CandlestickChart, route: '/trades', category: 'money',
     keywords: ['trade tracker', 'trading', 'p&l', 'profit', 'loss', 'gold', 'xauusd', 'positions'], component: Trades,
     contract: { search: { type: 'trade', textFields: ['asset', 'notes', 'tags', 'date', 'direction'], supportsTags: true },
       linkable: { type: 'trade', label: 'Trade' }, quickCapture: ['trade'], calendar: true, insights: true } },
-  { id: 'savings', name: 'Savings', icon: PiggyBank, route: '/savings', category: 'money', shortcut: '4',
+  { id: 'savings', name: 'Savings', icon: PiggyBank, route: '/savings', category: 'money',
     keywords: ['savings tracker', 'goals', 'money', 'balance', 'deposit', 'withdrawal'], component: Savings,
     contract: { search: { type: 'goal', textFields: ['name', 'notes'], supportsTags: false },
       linkable: { type: 'goal', label: 'Savings goal' }, quickCapture: ['deposit'], calendar: true, insights: true } },
@@ -83,7 +84,7 @@ export const TOOLS: ToolDef[] = [
       insights: true,
       dashboard: true
     } },
-  { id: 'habits', name: 'Habits', icon: CalendarCheck, route: '/habits', category: 'productivity', shortcut: '5',
+  { id: 'habits', name: 'Habits', icon: CalendarCheck, route: '/habits', category: 'productivity',
     keywords: ['habit tracker', 'streak', 'routine', 'daily', 'check-in'], component: Habits,
     contract: { quickCapture: ['habit'], insights: true } },
   { id: 'tasks', name: 'Tasks', icon: CheckSquare, route: '/tasks', category: 'productivity',
@@ -120,11 +121,11 @@ export const TOOLS: ToolDef[] = [
       linkable: { type: 'note', label: 'Note' }, insights: true } },
   { id: 'tags', name: 'Tags', icon: TagsIcon, route: '/tags', category: 'utilities',
     keywords: ['tags', 'labels', 'organise', 'merge', 'rename', 'colour'], component: TagsPage },
-  { id: 'search', name: 'Search', icon: Search, route: '/search', category: 'utilities', shortcut: '6',
+  { id: 'search', name: 'Search', icon: Search, route: '/search', category: 'utilities',
     keywords: ['find', 'lookup', 'everything'], component: SearchPage },
   { id: 'trash', name: 'Trash', icon: Trash2, route: '/trash', category: 'utilities',
     keywords: ['trash', 'deleted', 'undo', 'restore', 'bin', 'recycle'], component: Trash },
-  { id: 'settings', name: 'Settings', icon: Cog, route: '/settings', category: 'utilities', shortcut: '7', footer: true,
+  { id: 'settings', name: 'Settings', icon: Cog, route: '/settings', category: 'utilities', footer: true,
     keywords: ['appearance', 'theme', 'colour', 'backup', 'export', 'import', 'tags', 'preferences'], component: SettingsPage }
 ]
 
@@ -137,7 +138,3 @@ export const START_TOOL: ToolDef = TOOLS[0]
 // Finds a tool by id ("trades") or route ("/trades"). Undefined when there is no such tool.
 export const findTool = (idOrRoute: string): ToolDef | undefined =>
   TOOLS.find((t) => t.id === idOrRoute || t.route === idOrRoute)
-
-// The tool that Ctrl+<digit> opens.
-export const toolByShortcut = (key: string): ToolDef | undefined =>
-  TOOLS.find((t) => t.shortcut !== undefined && t.shortcut === key)
