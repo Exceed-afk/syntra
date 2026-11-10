@@ -295,10 +295,11 @@ function JournalSection({ briefing, today: _today, onNavigate, onOpen, onWrite }
 }) {
   // Always shown: even with nothing written it offers the "write today's entry" button.
   if (!briefing) {
+    // Quiet, one-line note only: the page-level empty state already carries
+    // the one primary action, so this card must not add a second button.
     return (
       <Section title="Journal" icon={<BookOpen size={15} />} onOpen={() => onNavigate('logbook')} openLabel="Open logbook">
-        <EmptyState compact title="Nothing written yet" text="One line about today is a good start."
-          action={<button className="btn-primary" onClick={onWrite}><Plus size={14} /> Write today's entry</button>} />
+        <p className="meta mt-3">Nothing written yet — one line about today is a good start.</p>
       </Section>
     )
   }
