@@ -121,6 +121,81 @@ export const trades: Trade[] = TRADE_SEEDS.map((t, i) => {
   }
 })
 
+// ---------- alternate trade sets for the preview only ----------
+// ?trades=<name> swaps the sample trades so the Analysis states (gate, all wins,
+// all losses, a recovered drawdown) can be screenshotted. The default `trades`
+// above never changes. Prices are derived from the wanted P&L, so the row still
+// looks like a real trade; fees are 0 because P&L is already the net figure.
+
+export const PREVIEW_TRADE_SETS = ['noTrades', 'few', 'allWins', 'allLosses', 'recovered'] as const
+export type PreviewTradeSet = typeof PREVIEW_TRADE_SETS[number]
+
+interface PreviewTradeSeed {
+  offset: number
+  asset: string
+  dir: 'long' | 'short'
+  pnl: number | null
+  tags?: string[]
+}
+
+const previewTrades = (seeds: PreviewTradeSeed[], firstId: number): Trade[] => seeds.map((seed, i) => {
+  const date = addDays(TODAY, seed.offset)
+  const entry = 100
+  const exit = seed.pnl === null ? null : seed.dir === 'long' ? entry + seed.pnl : entry - seed.pnl
+  return {
+    id: firstId + i, date, asset: seed.asset, direction: seed.dir, entryPrice: entry, exitPrice: exit,
+    quantity: 1, fees: 0, notes: '', tags: seed.tags ?? [], pnl: seed.pnl,
+    closedAt: seed.pnl === null ? null : stamp(date, '21:10'),
+    createdAt: stamp(date, '09:30'), updatedAt: stamp(date, '21:10')
+  }
+})
+
+export const previewTradeSets: Record<PreviewTradeSet, Trade[]> = {
+  noTrades: [],
+  few: previewTrades([
+    { offset: -2, asset: 'XAUUSD', dir: 'long', pnl: 12, tags: ['gold'] },
+    { offset: -5, asset: 'BTCUSD', dir: 'short', pnl: -8, tags: ['crypto'] },
+    { offset: -9, asset: 'EURUSD', dir: 'long', pnl: 4, tags: ['fx'] },
+    { offset: -14, asset: 'XAUUSD', dir: 'short', pnl: 0, tags: ['gold'] },
+    { offset: -1, asset: 'US500', dir: 'long', pnl: null, tags: ['index'] }
+  ], 800),
+  allWins: previewTrades([
+    { offset: -30, asset: 'XAUUSD', dir: 'long', pnl: 40, tags: ['gold'] },
+    { offset: -27, asset: 'BTCUSD', dir: 'long', pnl: 12, tags: ['crypto'] },
+    { offset: -24, asset: 'EURUSD', dir: 'short', pnl: 65, tags: ['fx'] },
+    { offset: -20, asset: 'US500', dir: 'long', pnl: 8, tags: ['index'] },
+    { offset: -16, asset: 'XAUUSD', dir: 'short', pnl: 30, tags: ['gold', 'breakout'] },
+    { offset: -12, asset: 'GBPJPY', dir: 'long', pnl: 22, tags: ['fx'] },
+    { offset: -8, asset: 'BTCUSD', dir: 'short', pnl: 15, tags: ['crypto'] },
+    { offset: -4, asset: 'XAUUSD', dir: 'long', pnl: 50, tags: ['gold'] },
+    { offset: -1, asset: 'EURUSD', dir: 'long', pnl: 18, tags: ['fx'] }
+  ], 820),
+  allLosses: previewTrades([
+    { offset: -30, asset: 'XAUUSD', dir: 'long', pnl: -25, tags: ['gold'] },
+    { offset: -27, asset: 'BTCUSD', dir: 'long', pnl: -12, tags: ['crypto'] },
+    { offset: -24, asset: 'EURUSD', dir: 'short', pnl: -40, tags: ['fx'] },
+    { offset: -20, asset: 'US500', dir: 'long', pnl: -8, tags: ['index'] },
+    { offset: -16, asset: 'XAUUSD', dir: 'short', pnl: -15, tags: ['gold', 'breakout'] },
+    { offset: -12, asset: 'GBPJPY', dir: 'long', pnl: -30, tags: ['fx'] },
+    { offset: -8, asset: 'BTCUSD', dir: 'short', pnl: -10, tags: ['crypto'] },
+    { offset: -4, asset: 'XAUUSD', dir: 'long', pnl: -22, tags: ['gold'] },
+    { offset: -1, asset: 'EURUSD', dir: 'long', pnl: -18, tags: ['fx'] }
+  ], 840),
+  // Peak 150, trough 10, fully back above the peak at the seventh trade.
+  recovered: previewTrades([
+    { offset: -20, asset: 'XAUUSD', dir: 'long', pnl: 120, tags: ['gold'] },
+    { offset: -18, asset: 'BTCUSD', dir: 'long', pnl: 30, tags: ['crypto'] },
+    { offset: -16, asset: 'EURUSD', dir: 'short', pnl: -100, tags: ['fx'] },
+    { offset: -14, asset: 'US500', dir: 'long', pnl: -40, tags: ['index'] },
+    { offset: -12, asset: 'XAUUSD', dir: 'short', pnl: 20, tags: ['gold', 'breakout'] },
+    { offset: -10, asset: 'GBPJPY', dir: 'long', pnl: 90, tags: ['fx'] },
+    { offset: -8, asset: 'BTCUSD', dir: 'short', pnl: 50, tags: ['crypto'] },
+    { offset: -6, asset: 'XAUUSD', dir: 'long', pnl: 20, tags: ['gold'] },
+    { offset: -4, asset: 'EURUSD', dir: 'long', pnl: 10, tags: ['fx'] },
+    { offset: -2, asset: 'US500', dir: 'short', pnl: 5, tags: ['index'] }
+  ], 860)
+}
+
 // ---------- savings ----------
 
 const GOAL_SEEDS: { name: string; target: number | null; notes: string }[] = [

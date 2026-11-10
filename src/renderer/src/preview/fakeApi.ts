@@ -32,8 +32,8 @@ import type { DueBill } from '../../../modules/expenses/service/recurring'
 import type { DeleteBatch, AutomationActivity, DailyBriefing, ExportResult } from '../../../shared/types'
 import {
   TODAY, automationActivity, content, entries, expenseBudgets, expenseCategories, expenseTx, focusSessions, goals,
-  habitList, notes, projects, recurringBills, savingsTx, scratchpads, snippets, tasks,
-  templates, trades, trashBatches, trashTasks
+  habitList, notes, previewTradeSets, projects, recurringBills, savingsTx, scratchpads, snippets, tasks,
+  templates, trades, trashBatches, trashTasks, type PreviewTradeSet
 } from './fixtures'
 
 const tick = <T,>(value: T): Promise<T> => Promise.resolve(value)
@@ -1002,8 +1002,11 @@ function monthRange(anchor: string): { start: string; end: string } {
  * Puts the fake API on `window` before the app renders. Returns the fake for tests/tools.
  * `empty` (?empty=1) starts every list empty, so each page's empty state can be looked at;
  * the sample scalars (today, settings) stay, because the empty state must still be reachable.
+ * `tradeSet` (?trades=few and friends) replaces only the trade rows, so the Trades >
+ * Analysis states can be looked at without changing the default sample set.
  */
-export function installFakeApi(empty = false): EverythingApi {
+export function installFakeApi(empty = false, tradeSet: PreviewTradeSet | null = null): EverythingApi {
+  if (tradeSet) db.trades = clone(previewTradeSets[tradeSet])
   if (empty) {
     db.entries = []
     db.trades = []

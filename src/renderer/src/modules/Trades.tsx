@@ -11,8 +11,10 @@ import { Pnl } from '../components/Pnl'
 import { Toolbar, ToolbarStart, ToolbarEnd, ToolbarSearch } from '../components/Toolbar'
 import { FilterPopover, FilterChips, type ActiveFilterChip } from '../components/FilterPopover'
 import { DateRangePopover, dateRangeChipOf, type DateRangeValue } from '../components/DateRangePopover'
+import { Segmented } from '../components/Segmented'
 import type { ModuleProps } from '../lib/navigation'
 import { TradeEditor } from './TradeEditor'
+import { TradesAnalysis } from './TradesAnalysis'
 import { TagChip } from '../components/TagChip'
 
 export function Trades({ target, onTargetHandled }: ModuleProps) {
@@ -20,6 +22,9 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
   const [meta, setMeta] = useState<TradeMeta>({ assets: [], tags: [] })
   const [filter, setFilter] = useState<TradeFilter>({})
   const [range, setRange] = useState<DateRangeValue>({ preset: 'all' })
+  // The Analysis tab has its own range and never reads the filter or range above.
+  const [tab, setTab] = useState<'trades' | 'analysis'>('trades')
+  const [analysisRange, setAnalysisRange] = useState<DateRangeValue>({ preset: 'all' })
   const [editing, setEditing] = useState<Trade | 'new' | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -87,12 +92,30 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
 
   return (
     <div className="page page-wide">
-      <PageHeader title="Trades" help={stats.total === 0 ? 'Track every trade, open or closed. P&L is worked out from entry, exit, size and fees.' : `${stats.closed} closed, ${stats.open} open${hasFilter ? ' (filtered)' : ''}. P&L is worked out from entry, exit, size and fees.`}>
+      <PageHeader title="Trades" help={tab === 'analysis'
+        ? 'Analysis uses only its own date range. Search, direction and tag filters on the Trades tab never change these numbers. P&L is net of fees.'
+        : stats.total === 0 ? 'Track every trade, open or closed. P&L is worked out from entry, exit, size and fees.' : `${stats.closed} closed, ${stats.open} open${hasFilter ? ' (filtered)' : ''}. P&L is worked out from entry, exit, size and fees.`}>
         <button className="btn-primary" onClick={() => setEditing('new')} title="Ctrl+N">
           <Plus size={16} /> New trade
         </button>
       </PageHeader>
 
+      {/* Trades and Analysis are two views of the same page. Analysis owns its own range; the
+          Trades filters below are neither shown nor read while Analysis is open. */}
+      <Toolbar label="Trades sections">
+        <ToolbarStart>
+          <Segmented label="Trades sections" kind="tabs" value={tab} onChange={setTab}
+            options={[{ id: 'trades', label: 'Trades' }, { id: 'analysis', label: 'Analysis' }]} />
+        </ToolbarStart>
+        {tab === 'analysis' && (
+          <ToolbarEnd>
+            <DateRangePopover value={analysisRange} onChange={setAnalysisRange} label="Analysis date range" />
+          </ToolbarEnd>
+        )}
+      </Toolbar>
+
+      {tab === 'trades' && (
+        <>
       {stats.total > 0 && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 stat-tiles-sm">
           {card('Total P&L', fmtPnl(stats.totalPnl), `after ${fmtNum(stats.totalFees)} in fees`, pnlColor(stats.totalPnl))}
@@ -171,6 +194,12 @@ export function Trades({ target, onTargetHandled }: ModuleProps) {
           </div>
         )}
       </div>
+        </>
+      )}
+
+      {tab === 'analysis' && (
+        <TradesAnalysis range={analysisRange} onRangeChange={setAnalysisRange} />
+      )}
 
       {editing && (
         <TradeEditor key={editing === 'new' ? 'new' : editing.id}

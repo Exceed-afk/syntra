@@ -17,6 +17,7 @@
 //   ?pinned=trades,habits the Pinned list, without a click (comma-separated tool ids)
 //   ?palette=1           open the command palette
 //   ?empty=1             every sample list starts empty (the page's empty state)
+//   ?trades=few          only the sample trades change: noTrades | few | allWins | allLosses | recovered
 //
 // Examples:  ?page=tasks&theme=forest&mode=dark
 //            ?page=notes&theme=default&mode=light&palette=1
@@ -80,8 +81,9 @@ function PreviewBar({ page }: { page: string }) {
 // density, font, radius and text size to the page (no settings write).
 const options = previewOptions(new URLSearchParams(window.location.search))
 
-// Install the fake API before the first render; ?empty=1 empties the sample lists.
-installFakeApi(options.empty)
+// Install the fake API before the first render; ?empty=1 empties the sample lists and
+// ?trades=<set> swaps only the sample trades.
+installFakeApi(options.empty, options.tradeSet)
 
 function PreviewApp() {
   const requested = options.page

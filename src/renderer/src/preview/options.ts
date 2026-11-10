@@ -7,6 +7,7 @@ import { PALETTES } from '../../../shared/appearance'
 import { DEFAULT_SETTINGS, type Density, type FontChoice, type Radius, type Settings, type TextSize, type UiStyle } from '../../../shared/types'
 import { applyAppearance } from '../lib/theme'
 import { applyFromMain } from '../lib/settingsStore'
+import { PREVIEW_TRADE_SETS, type PreviewTradeSet } from './fixtures'
 
 export type PreviewMode = 'light' | 'dark'
 
@@ -25,6 +26,8 @@ export interface PreviewOptions {
   pinnedTools: string[]
   /** All sample lists start empty, so a page's empty state can be looked at. */
   empty: boolean
+  /** Replaces only the sample trades, for the Trades > Analysis states. */
+  tradeSet: PreviewTradeSet | null
 }
 
 const DENSITIES = ['compact', 'comfortable', 'spacious'] as const satisfies readonly Density[]
@@ -57,7 +60,11 @@ export function previewOptions(params: URLSearchParams): PreviewOptions {
     // ?pinned=trades,habits: the Pinned list without a click (comma-separated tool ids). The sidebar uses these
     // instead of the sample pins, so the page's own settings load cannot put the sample pins back.
     pinnedTools: (params.get('pinned') ?? '').split(',').map((s) => s.trim()).filter((s) => /^[a-z][a-z0-9-]*$/.test(s)),
-    empty: params.get('empty') === '1'
+    empty: params.get('empty') === '1',
+    tradeSet: (() => {
+      const raw = params.get('trades') ?? ''
+      return (PREVIEW_TRADE_SETS as readonly string[]).includes(raw) ? raw as PreviewTradeSet : null
+    })()
   }
 
   const settings: Settings = {
