@@ -24,9 +24,9 @@ if (process.env.ELECTRON_RUN_AS_NODE !== undefined) {
 }
 
 const fs = require('node:fs')
-const os = require('node:os')
 const { join, resolve } = require('node:path')
 const { pathToFileURL } = require('node:url')
+const { tempProfilePath, pruneProfiles } = require('./lib/temp-profile.cjs')
 const { app, BrowserWindow, protocol, net, screen } = require('electron')
 // The one list of palettes, read from the text of appearance.ts (this file is CommonJS; the app is TypeScript):
 // the `palette({` call that opens each entry, then the first `id: '…'` that follows it.
@@ -98,17 +98,13 @@ function finish(payload, rows) {
 const watchdog = setTimeout(() => finish({ look: LOOK, error: 'the window did not answer within 240 s' }), 240_000)
 watchdog.unref()
 
-// A throw-away profile, removed on the way out; one left by an interrupted run is never needed either.
-const PROFILE = join(os.tmpdir(), `feeblest-sidebar-measure-${process.pid}`)
+// A throw-away profile from scripts/lib/temp-profile.cjs (the one place such a path is built), removed on the way
+// out; one left by an interrupted run is never needed either.
+const PROFILE = tempProfilePath('sidebar-measure')
 app.setPath('userData', PROFILE)
 // Old profiles are pruned once the app is up (not while Chromium is still starting with this one), and never the
 // profile that is in use.
-const pruneOlderProfiles = () => {
-  for (const name of fs.readdirSync(os.tmpdir())) {
-    if (!name.startsWith('feeblest-sidebar-measure-') || join(os.tmpdir(), name) === PROFILE) continue
-    try { fs.rmSync(join(os.tmpdir(), name), { recursive: true, force: true }) } catch { }
-  }
-}
+const pruneOlderProfiles = () => { try { pruneProfiles('sidebar-measure', PROFILE) } catch { } }
 app.on('will-quit', () => { try { fs.rmSync(PROFILE, { recursive: true, force: true }) } catch { } })
 app.commandLine.appendSwitch('disable-gpu')
 

@@ -26,6 +26,8 @@ for (const root of roots) {
     if (chromium) break
   } catch { }
 }
+const profile = createRequire(import.meta.url)('./lib/temp-profile.cjs')
+profile.assertNotRealProfile(profile.cdpProfilePath(9222))
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222')
 const context = browser.contexts()[0]
 let page = null

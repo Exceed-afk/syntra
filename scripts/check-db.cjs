@@ -1,14 +1,19 @@
 // Quick schema check against the real app database (read-only). Uses the
 // system-Node addon copy the tests use (tests/sqlite.ts points there too).
-const path = require('path')
+//
+// It opens the real profile, so it refuses to run without ALLOW_REAL_PROFILE=1:
+//   ALLOW_REAL_PROFILE=1 node scripts/check-db.cjs
+const fs = require('node:fs')
+const path = require('node:path')
+const { realProfilePath, assertNotRealProfile } = require('./lib/temp-profile.cjs')
+
 const root = path.join(__dirname, '..')
+const profile = realProfilePath()
+assertNotRealProfile(profile)
+
 const binding = path.join(root, 'node_modules', 'better-sqlite3', 'build-node', 'Release', 'better_sqlite3.node')
-const Database = require('better-sqlite3')(process.env.BETTER_SQLITE3_BINDING
-    ? undefined
-    : undefined, { nativeBinding: require('fs').existsSync(binding) ? binding : undefined })
-void Database
-const path = require('path')
-const dbPath = path.join(process.env.APPDATA, "Feeblest's Everything", 'data', 'everything.db')
+const Database = require('better-sqlite3')(undefined, { nativeBinding: fs.existsSync(binding) ? binding : undefined })
+const dbPath = path.join(profile, 'data', 'everything.db')
 const db = new Database(dbPath, { readonly: true })
 console.log('user_version =', db.pragma('user_version', { simple: true }))
 const cols = db.prepare("PRAGMA table_info('trades')").all().map((c) => c.name)

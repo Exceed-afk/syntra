@@ -14,10 +14,18 @@ Local-only logbook, trade tracker and savings tracker for Windows (Electron + Re
 ## Run it
 - `npm run dev` — dev mode with hot reload. `scripts/dev.cjs` strips a machine-level `ELECTRON_RUN_AS_NODE=1` first (see below).
 - `npm run build` then `npm start` — production build and launch. `scripts/launch.cjs` strips a machine-level `ELECTRON_RUN_AS_NODE=1` if one is set, which would otherwise force the Electron exe to run as plain Node (the main process would then crash with "electron is a path string, not a module").
-- `node scripts/check-db.cjs` — read-only peek at the real database: schema version, trades columns, dismissals shape.
+- `node scripts/check-db.cjs` — read-only peek at the real database: schema version, trades columns, dismissals shape. It opens the real profile, so it needs `ALLOW_REAL_PROFILE=1`.
+- Anything that starts Electron for testing must use a temporary `--user-data-dir`. Only `npm run dev` and `npm run start` use the real profile. `scripts/lib/temp-profile.cjs` is the one place such a folder is built, and every script that starts Electron or attaches to one over CDP refuses to touch the real profile unless `ALLOW_REAL_PROFILE=1` is set.
 1. Install Node.js 20+ and, if the install step complains about compiling, the "Desktop development with C++" tools from Visual Studio Build Tools.
 2. In this folder: `npm install` then `npm run dev`
 3. Build an installer: `npm run dist`
+
+### If the app closes by itself
+A crash is not a clean close, and it is no longer hidden: `npm run dev` and `npm run start` report the child's real status, so a native crash prints a line such as `[launch] electron crashed with code 3221225477 (0xC0000005)` and the command exits non-zero (`0xC0000005` is an access violation). `[launch] electron exited with code 0` means the app really closed by itself.
+
+- **Leftover processes:** `Get-Process electron` (PowerShell) lists them; stop one tree with `taskkill /PID <pid> /T /F`. A script that starts the app itself ends its own tree in a `finally` block.
+- **Rebuild the profile:** rename `%APPDATA%\Feeblest's Everything` to `%APPDATA%\Feeblest's Everything-old-<date>`, start the app once so it creates a fresh profile, quit it, then copy `data\` from the old folder into the new one. That keeps every entry and setting; the old folder stays as a backup and the app never deletes it.
+- **`DevToolsActivePort`** in the profile is left behind by a run started with `--remote-debugging-port`; it is not read unless a debugging port is requested again.
 
 ### If `npm test` says "was compiled against a different Node.js version"
 `better-sqlite3` is a native addon, and it has to be compiled for the Node version that loads it. The app runs inside Electron, but `npm test` runs under your system Node, and the two need different builds.
