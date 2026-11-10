@@ -68,8 +68,8 @@ export function PeriodArrows({ onPrev, onNext, prevLabel, nextLabel, nextDisable
 }) {
   return (
     <div className="flex items-center">
-      <button className="arrow" onClick={onPrev} aria-label={prevLabel} title={prevLabel}><ChevronLeft size={18} aria-hidden="true" /></button>
-      <button className="arrow" onClick={onNext} aria-label={nextLabel} title={nextLabel} disabled={nextDisabled}><ChevronRight size={18} aria-hidden="true" /></button>
+      <button type="button" className="arrow" onClick={onPrev} aria-label={prevLabel} title={prevLabel}><ChevronLeft size={18} aria-hidden="true" /></button>
+      <button type="button" className="arrow" onClick={onNext} aria-label={nextLabel} title={nextLabel} disabled={nextDisabled}><ChevronRight size={18} aria-hidden="true" /></button>
     </div>
   )
 }

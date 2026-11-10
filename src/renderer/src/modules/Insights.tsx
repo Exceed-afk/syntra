@@ -109,13 +109,13 @@ function Card({ id, text, detail, onDismiss, snoozeWeeks, aLabel, bLabel, a, b }
       <div className="flex items-start justify-between gap-3">
         <p className="text-lg leading-relaxed">{text}</p>
         <div className="-mr-1 -mt-1 flex shrink-0 items-center gap-1">
-          <button className="btn-icon" title={`Snooze for ${snoozeWeeks} weeks`} aria-label={`Snooze for ${snoozeWeeks} weeks`}
+          <button type="button" className="btn-icon" title={`Snooze for ${snoozeWeeks} weeks`} aria-label={`Snooze for ${snoozeWeeks} weeks`}
             onClick={() => { setGone(true); void onDismiss(id, true, 'snooze') }}>
-            <Clock size={15} />
+            <Clock size={15} aria-hidden="true" />
           </button>
-          <button className="btn-icon hover:text-neg" title="Hide this insight until restored" aria-label="Hide this insight until restored"
+          <button type="button" className="btn-icon hover:text-neg" title="Hide this insight until restored" aria-label="Hide this insight until restored"
             onClick={() => { setGone(true); void onDismiss(id, true, 'hide') }}>
-            <X size={15} />
+            <X size={15} aria-hidden="true" />
           </button>
         </div>
       </div>
