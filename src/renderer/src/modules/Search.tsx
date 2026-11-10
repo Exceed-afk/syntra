@@ -70,12 +70,12 @@ export function Search({ onOpen, onNavigate }: ModuleProps) {
 
   return (
     <div className="page">
-      <PageHeader title="Search" help="Search your Logbook, trades, savings, tasks, notes, content, expenses and focus sessions. Plain words must all match; #tag finds tagged items; 2026-10 finds a month." />
+      <PageHeader title="Search" help="Search your Logbook, trades, savings goals and transactions, tasks, notes, content, expenses, focus sessions, snippets and scratchpads. Plain words must all match; #tag finds tagged items; 2026-10 finds a month." />
 
       <div className="relative">
         <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
         <input ref={inputRef} className="field py-3 pl-11 pr-10 text-base" value={query}
-          placeholder="Search your logbook, trades and savings" aria-label="Search everything"
+          placeholder="Search your logbook, trades, savings, tasks, notes, content, expenses, focus, snippets and scratchpads" aria-label="Search everything"
           onChange={(e) => change(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Escape' && query) { e.preventDefault(); change('') } }} />
         {query && (
@@ -87,13 +87,13 @@ export function Search({ onOpen, onNavigate }: ModuleProps) {
       </div>
 
       {!searching && (
-        <div className="empty mt-6 items-start text-left">
-          <p className="font-medium">Find anything you have written or tracked.</p>
-          <ul className="mt-3 space-y-1.5 text-sm text-muted">
-            <li><code className="text-fg">gold breakout</code> finds items containing both words</li>
-            <li><code className="text-fg">#risk</code> finds items tagged risk</li>
-            <li><code className="text-fg">2026-10</code> finds items from October 2026</li>
-          </ul>
+        <div className="card card-pad mt-6">
+          <p className="font-medium">Search tips</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="badge badge-muted cursor-pointer" onClick={() => change('gold breakout')}>gold breakout</button>
+            <button type="button" className="badge badge-muted cursor-pointer" onClick={() => change('#risk')}>#risk</button>
+            <button type="button" className="badge badge-muted cursor-pointer" onClick={() => change('2026-10')}>2026-10</button>
+          </div>
           <p className="mt-3 text-sm text-muted">Tip: Ctrl+K opens the command palette, to jump to any tool from anywhere.</p>
         </div>
       )}
