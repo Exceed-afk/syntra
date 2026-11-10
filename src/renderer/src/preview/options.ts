@@ -23,6 +23,8 @@ export interface PreviewOptions {
   palette: boolean
   /** Tool ids to show as pinned; empty means "as saved in the sample data". */
   pinnedTools: string[]
+  /** All sample lists start empty, so a page's empty state can be looked at. */
+  empty: boolean
 }
 
 const DENSITIES = ['compact', 'comfortable', 'spacious'] as const satisfies readonly Density[]
@@ -54,7 +56,8 @@ export function previewOptions(params: URLSearchParams): PreviewOptions {
     palette: params.get('palette') === '1',
     // ?pinned=trades,habits: the Pinned list without a click (comma-separated tool ids). The sidebar uses these
     // instead of the sample pins, so the page's own settings load cannot put the sample pins back.
-    pinnedTools: (params.get('pinned') ?? '').split(',').map((s) => s.trim()).filter((s) => /^[a-z][a-z0-9-]*$/.test(s))
+    pinnedTools: (params.get('pinned') ?? '').split(',').map((s) => s.trim()).filter((s) => /^[a-z][a-z0-9-]*$/.test(s)),
+    empty: params.get('empty') === '1'
   }
 
   const settings: Settings = {

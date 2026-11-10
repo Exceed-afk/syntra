@@ -16,6 +16,7 @@
 //   ?sidebar=collapsed   collapsed | open (overrides the window width rule)
 //   ?pinned=trades,habits the Pinned list, without a click (comma-separated tool ids)
 //   ?palette=1           open the command palette
+//   ?empty=1             every sample list starts empty (the page's empty state)
 //
 // Examples:  ?page=tasks&theme=forest&mode=dark
 //            ?page=notes&theme=default&mode=light&palette=1
@@ -36,8 +37,7 @@ import '../styles.css'
 import { installFakeApi } from './fakeApi'
 import { previewOptions } from './options'
 
-// Install the fake API BEFORE anything that reads it is loaded.
-installFakeApi()
+// The fake API is installed below, once the URL is read (it needs ?empty=1).
 
 // Navigation that updates the URL, so every page state can be linked and screenshotted.
 function setParam(key: string, value: string): void {
@@ -79,6 +79,9 @@ function PreviewBar({ page }: { page: string }) {
 // The look comes from the URL. previewOptions() applies theme, palette, style,
 // density, font, radius and text size to the page (no settings write).
 const options = previewOptions(new URLSearchParams(window.location.search))
+
+// Install the fake API before the first render; ?empty=1 empties the sample lists.
+installFakeApi(options.empty)
 
 function PreviewApp() {
   const requested = options.page

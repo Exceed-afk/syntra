@@ -27,6 +27,7 @@ import { EmptyState } from '../components/EmptyState'
 import { Dialog, Field, FormMessage } from '../components/EditorBits'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ProgressBar } from '../components/ProgressBar'
+import { Segmented } from '../components/Segmented'
 import { errMsg } from '../lib/errors'
 import { today, formatDate, localTime } from '../lib/dates'
 import { useSettings, updateSettings } from '../lib/settingsStore'
@@ -34,6 +35,10 @@ import { useRefreshOnCapture } from '../lib/dataChanged'
 import { noteUndoableDelete } from '../lib/undo'
 
 type Tab = 'timer' | 'reports' | 'sessions' | 'projects'
+type ReportRange = 'today' | 'week' | 'month'
+
+// The daily focus goal the Today card measures against (display only: nothing is stored or enforced).
+const DAILY_FOCUS_GOAL_SECONDS = 4 * 3600
 
 const PROJECT_PALETTE = [
   '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b',
@@ -278,28 +283,26 @@ export function Focus({ onNavigate }: ModuleProps) {
       >
         <div className="flex items-center gap-2">
           <button className="btn btn-sm" onClick={() => setManualModal('new')} title="Ctrl+N">
-            <Plus size={14} /> Log time
+            <Plus size={14} aria-hidden="true" /> Log time
           </button>
           <button className="btn-icon" onClick={() => setShowSettings(true)} aria-label="Timer settings" title="Timer settings">
-            <SettingsIcon size={16} />
+            <SettingsIcon size={16} aria-hidden="true" />
           </button>
         </div>
       </PageHeader>
 
-      <div className="seg mb-5" role="tablist" aria-label="Focus views">
-        <button role="tab" aria-selected={tab === 'timer'} onClick={() => setTab('timer')}>
-          <Timer size={14} className="mr-1.5 inline" /> Timer
-        </button>
-        <button role="tab" aria-selected={tab === 'reports'} onClick={() => setTab('reports')}>
-          <Flame size={14} className="mr-1.5 inline" /> Reports
-        </button>
-        <button role="tab" aria-selected={tab === 'sessions'} onClick={() => setTab('sessions')}>
-          <Clock size={14} className="mr-1.5 inline" /> Sessions
-        </button>
-        <button role="tab" aria-selected={tab === 'projects'} onClick={() => setTab('projects')}>
-          <Folder size={14} className="mr-1.5 inline" /> Projects
-        </button>
-      </div>
+      <Segmented<Tab>
+        label="Focus views"
+        value={tab}
+        onChange={setTab}
+        className="mb-5"
+        options={[
+          { id: 'timer', label: 'Timer', icon: Timer },
+          { id: 'reports', label: 'Reports', icon: Flame },
+          { id: 'sessions', label: 'Sessions', icon: Clock },
+          { id: 'projects', label: 'Projects', icon: Folder }
+        ]}
+      />
 
       {error && <p role="alert" className="mb-4 text-sm text-neg">{error}</p>}
 
@@ -310,20 +313,19 @@ export function Focus({ onNavigate }: ModuleProps) {
           <section className="card card-pad-lg flex flex-col items-center justify-center py-10 text-center">
             {/* Phase Mode Pills */}
             {!active ? (
-              <div className="seg mb-6" role="group" aria-label="Timer mode">
-                <button aria-pressed={idleMode === 'pomodoro' && idleType === 'focus'} onClick={() => { setIdleMode('pomodoro'); setIdleType('focus') }}>
-                  Focus ({focusSettings.focusDuration}m)
-                </button>
-                <button aria-pressed={idleMode === 'pomodoro' && idleType === 'short-break'} onClick={() => { setIdleMode('pomodoro'); setIdleType('short-break') }}>
-                  Short break ({focusSettings.shortBreakDuration}m)
-                </button>
-                <button aria-pressed={idleMode === 'pomodoro' && idleType === 'long-break'} onClick={() => { setIdleMode('pomodoro'); setIdleType('long-break') }}>
-                  Long break ({focusSettings.longBreakDuration}m)
-                </button>
-                <button aria-pressed={idleMode === 'count-up'} onClick={() => { setIdleMode('count-up'); setIdleType('count-up') }}>
-                  Count-up
-                </button>
-              </div>
+              <Segmented<FocusType>
+                label="Timer mode"
+                kind="group"
+                value={idleMode === 'count-up' ? 'count-up' : idleType}
+                onChange={(next) => { setIdleType(next); setIdleMode(next === 'count-up' ? 'count-up' : 'pomodoro') }}
+                className="mb-6"
+                options={[
+                  { id: 'focus', label: `Focus (${focusSettings.focusDuration}m)` },
+                  { id: 'short-break', label: `Short break (${focusSettings.shortBreakDuration}m)` },
+                  { id: 'long-break', label: `Long break (${focusSettings.longBreakDuration}m)` },
+                  { id: 'count-up', label: 'Count-up' }
+                ]}
+              />
             ) : (
               <div className="mb-4 flex items-center gap-2">
                 <span className="badge badge-accent uppercase tracking-wider text-xs">
@@ -376,8 +378,8 @@ export function Focus({ onNavigate }: ModuleProps) {
             {/* Timer action controls */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               {!active ? (
-                <button className="btn-primary px-6 py-2.5 text-base font-semibold" onClick={() => void handleStart()}>
-                  <Play size={18} className="mr-2 inline" /> Start {idleType === 'focus' ? 'Focus' : idleType === 'count-up' ? 'Count-up' : 'Break'}
+                <button className="btn-primary" onClick={() => void handleStart()}>
+                  <Play size={16} aria-hidden="true" /> Start {idleType === 'focus' ? 'Focus' : idleType === 'count-up' ? 'Count-up' : 'Break'}
                 </button>
               ) : active.status === 'running' ? (
                 <>
@@ -387,8 +389,8 @@ export function Focus({ onNavigate }: ModuleProps) {
                   <button className="btn-primary px-4 py-2" onClick={() => void handleStop(true)}>
                     <Check size={16} className="mr-1.5 inline" /> Complete
                   </button>
-                  <button className="btn-danger btn-sm" onClick={() => void handleDiscard()} title="Discard without logging">
-                    <Trash2 size={14} />
+                  <button className="btn-icon btn-danger" onClick={() => void handleDiscard()} aria-label="Discard session" title="Discard without logging">
+                    <Trash2 size={14} aria-hidden="true" />
                   </button>
                 </>
               ) : (
@@ -475,8 +477,8 @@ export function Focus({ onNavigate }: ModuleProps) {
                 <span className="meta">{summary?.completedRoundsToday ?? 0} rounds done</span>
               </div>
               <div className="mt-3">
-                <ProgressBar percent={Math.min(100, Math.round(((summary?.todayFocusSeconds ?? 0) / 14400) * 100))} />
-                <span className="meta mt-1 block">Goal: 4 hours (14,400s)</span>
+                <ProgressBar percent={Math.min(100, Math.round(((summary?.todayFocusSeconds ?? 0) / DAILY_FOCUS_GOAL_SECONDS) * 100))} />
+                <span className="meta mt-1 block">Goal: {formatDuration(DAILY_FOCUS_GOAL_SECONDS)}</span>
               </div>
             </div>
           </aside>
@@ -547,7 +549,7 @@ export function Focus({ onNavigate }: ModuleProps) {
 // ---------------------------------------------------------------------------
 
 function FocusReportsView({ projects }: { projects: Project[] }) {
-  const [rangeKind, setRangeKind] = useState<'today' | 'week' | 'month'>('week')
+  const [rangeKind, setRangeKind] = useState<ReportRange>('week')
   const [report, setReport] = useState<FocusReport | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -581,11 +583,18 @@ function FocusReportsView({ projects }: { projects: Project[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="seg" role="group" aria-label="Report period">
-          <button aria-pressed={rangeKind === 'today'} onClick={() => setRangeKind('today')}>Today</button>
-          <button aria-pressed={rangeKind === 'week'} onClick={() => setRangeKind('week')}>7 Days</button>
-          <button aria-pressed={rangeKind === 'month'} onClick={() => setRangeKind('month')}>30 Days</button>
-        </div>
+        <Segmented<ReportRange>
+          label="Report period"
+          kind="group"
+          size="sm"
+          value={rangeKind}
+          onChange={setRangeKind}
+          options={[
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: '7 Days' },
+            { id: 'month', label: '30 Days' }
+          ]}
+        />
         <span className="meta">{formatDate(dateSpan.from)} — {formatDate(dateSpan.to)}</span>
       </div>
 
@@ -820,6 +829,15 @@ function FocusProjectsManager({
           <Plus size={16} /> New project
         </button>
       </div>
+
+      {projects.length === 0 && (
+        <EmptyState
+          icon={Folder}
+          title="No projects yet"
+          text="Projects group your sessions so reports show where the hours go."
+          action={<button className="btn-primary btn-sm" onClick={() => onOpenModal('new')}><Plus size={14} aria-hidden="true" /> New project</button>}
+        />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {projects.map((p) => (

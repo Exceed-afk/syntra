@@ -141,9 +141,12 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
      to the numbers first. aria-pressed marks the choice, so it is never colour alone and works from the keyboard. */
   .seg { display: inline-flex; flex-wrap: wrap; gap: .125rem; padding: 3px; background: rgb(var(--fg) / .05); border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); }
   .seg > button {
+    display: inline-flex; align-items: center; justify-content: center; gap: .375rem; white-space: nowrap;
     padding: .3125rem .875rem; border-radius: calc(.5rem * var(--rs)); font-size: .8125rem; font-weight: 500; cursor: pointer;
     color: rgb(var(--muted)); transition: background-color .15s, color .15s, box-shadow .15s, transform .08s;
   }
+  /* The optional leading icon (components/Segmented.tsx) never squeezes or wraps. */
+  .seg > button > svg { flex: none; }
   .seg > button:hover { color: rgb(var(--fg)); }
   .seg > button:active { transform: scale(.96); }
   .seg > button[aria-pressed='true'], .seg > button[aria-selected='true'] { background: rgb(var(--selected)); color: rgb(var(--accent-fg)); box-shadow: 0 1px 2px rgb(var(--border) / .35); }

@@ -997,8 +997,34 @@ function monthRange(anchor: string): { start: string; end: string } {
 
 // ---------- installation ----------
 
-/** Puts the fake API on `window` before the app renders. Returns the fake for tests/tools. */
-export function installFakeApi(): EverythingApi {
+/**
+ * Puts the fake API on `window` before the app renders. Returns the fake for tests/tools.
+ * `empty` (?empty=1) starts every list empty, so each page's empty state can be looked at;
+ * the sample scalars (today, settings) stay, because the empty state must still be reachable.
+ */
+export function installFakeApi(empty = false): EverythingApi {
+  if (empty) {
+    db.entries = []
+    db.trades = []
+    db.goals = []
+    db.savingsTx = []
+    db.tasks = []
+    db.trashTasks = []
+    db.habits = []
+    db.notes = []
+    db.content = []
+    db.expenses = []
+    db.budgets = []
+    db.categories = []
+    db.bills = []
+    db.sessions = []
+    db.projects = []
+    db.snippets = []
+    db.scratchpads = []
+    db.templates = []
+    db.trash = []
+    db.activity = []
+  }
   ;(window as unknown as { api: EverythingApi }).api = api
   return api
 }

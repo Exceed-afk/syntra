@@ -16,6 +16,7 @@
 //   npm run shots -- --mode=dark       one mode (light | dark)
 //   npm run shots -- --theme=forest    a palette other than the default
 //   npm run shots -- --tag=v2          a run tag, part of every file name
+//   npm run shots -- --empty           every page with its sample lists emptied (the empty state)
 //
 // File names carry a run stamp and are unique per image, e.g.
 //   .ui-audit/2026-11-05_101500_deadbeef_tasks_1440_light_default.png
@@ -45,6 +46,7 @@ const WIDTHS = widthArgs.length > 0 ? widthArgs : [1440, 1024, 700]
 const MODES = many('mode').length > 0 ? many('mode') : ['light', 'dark']
 const THEME = one('theme', 'default')
 const TAG = one('tag', '')
+const EMPTY = args.includes('--empty')
 const ONLY = many('page')
 const OUT = resolve('.ui-audit')
 const PORT = Number(process.env.SHOTS_PORT ?? 5236)
@@ -143,8 +145,8 @@ let failed = 0
 for (const page of pages) {
   for (const width of WIDTHS) {
     for (const mode of MODES) {
-      const url = `http://127.0.0.1:${PORT}/?page=${page}&theme=${THEME}&mode=${mode}`
-      const name = `${runTime}${tagPart}_${runId}_${page}_${width}_${mode}_${THEME}.png`
+      const url = `http://127.0.0.1:${PORT}/?page=${page}&theme=${THEME}&mode=${mode}${EMPTY ? '&empty=1' : ''}`
+      const name = `${runTime}${tagPart}_${runId}_${page}_${width}_${mode}_${THEME}${EMPTY ? '_empty' : ''}.png`
       const file = join(OUT, name)
       const tab = await browser.newPage({ viewport: { width, height: 900 } })
       const problems = []
