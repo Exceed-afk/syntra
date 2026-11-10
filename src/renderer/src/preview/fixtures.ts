@@ -453,7 +453,15 @@ export const templates: Template[] = [
 
 export const trashBatches: TrashBatch[] = [
   { batchId: 'a1', trashedAt: stamp(addDays(TODAY, -2), '11:04'), count: 2, items: [{ type: 'task', id: 550, label: 'Old task from the board' }, { type: 'note', id: 199, label: 'Scratch note' }] },
-  { batchId: 'a2', trashedAt: stamp(addDays(TODAY, -9), '17:41'), count: 1, items: [{ type: 'trade', id: 299, label: 'XAUUSD, short' }] }
+  { batchId: 'a2', trashedAt: stamp(addDays(TODAY, -9), '17:41'), count: 1, items: [{ type: 'trade', id: 299, label: 'XAUUSD, short' }] },
+  { batchId: 'a3', trashedAt: stamp(addDays(TODAY, -1), '09:12'), count: 1, items: [{ type: 'note', id: 699, label: 'Meeting notes 2026-10-30' }] },
+  { batchId: 'a4', trashedAt: stamp(addDays(TODAY, -3), '14:22'), count: 1, items: [{ type: 'snippet', id: 1299, label: 'Git: undo last commit' }] },
+  { batchId: 'a5', trashedAt: stamp(addDays(TODAY, -4), '16:00'), count: 3, items: [{ type: 'habit', id: 1699, label: 'Old journal habit' }, { type: 'content', id: 799, label: 'Overdue idea: mailbag #4' }, { type: 'task', id: 599, label: 'Sort the photo library' }] },
+  { batchId: 'a6', trashedAt: stamp(addDays(TODAY, -5), '10:30'), count: 1, items: [{ type: 'logbook', id: 199, label: 'Sick day' }] },
+  { batchId: 'a7', trashedAt: stamp(addDays(TODAY, -7), '13:45'), count: 1, items: [{ type: 'scratchpad', id: 1399, label: 'Shopping' }] },
+  { batchId: 'a8', trashedAt: stamp(addDays(TODAY, -12), '08:15'), count: 1, items: [{ type: 'goal', id: 499, label: 'New desk chair' }] },
+  { batchId: 'a9', trashedAt: stamp(addDays(TODAY, -15), '19:30'), count: 1, items: [{ type: 'expense_tx', id: 999, label: 'Cinema, two tickets' }] },
+  { batchId: 'a10', trashedAt: stamp(addDays(TODAY, -20), '12:00'), count: 2, items: [{ type: 'time_session', id: 1199, label: 'Focus: receipts' }, { type: 'project', id: 1099, label: 'Old project' }] }
 ]
 
 // ---------- automation activity ----------
