@@ -307,6 +307,7 @@ app.whenReady().then(async () => {
     return restored
   })
   ipcMain.handle('trash:deleteForever', (_e, batchId: string) => deleteBatchForever(getDb(), String(batchId ?? '')))
+  ipcMain.handle('trash:empty', () => purgeTrash(getDb(), 0, localDate()))
   ipcMain.handle('links:add', (_e, a: LinkEndpoint, b: LinkEndpoint, relation?: string) =>
     addLink(getDb(), a, b, relation ?? DEFAULT_RELATION))
   ipcMain.handle('links:list', (_e, type: LinkType, id: number) => {

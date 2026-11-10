@@ -771,7 +771,8 @@ const api: EverythingApi = {
   trash: {
     list: () => tick(clone(db.trash)),
     restore: (batchId) => { db.trash = db.trash.filter((b) => b.batchId !== batchId); return tick(1) },
-    deleteForever: (batchId) => { db.trash = db.trash.filter((b) => b.batchId !== batchId); return tick(1) }
+    deleteForever: (batchId) => { db.trash = db.trash.filter((b) => b.batchId !== batchId); return tick(1) },
+    empty: () => { db.trash = []; return tick(0) }
   },
 
   links: {

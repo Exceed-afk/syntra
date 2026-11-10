@@ -146,6 +146,7 @@ export interface EverythingApi {
     list(): Promise<TrashBatch[]>
     restore(batchId: string): Promise<number>
     deleteForever(batchId: string): Promise<number>
+    empty(): Promise<number>
   }
   links: {
     add(a: LinkEndpoint, b: LinkEndpoint, relation?: string): Promise<number>

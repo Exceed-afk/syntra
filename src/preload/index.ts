@@ -191,7 +191,8 @@ const api: EverythingApi = {
   trash: {
     list: () => ipcRenderer.invoke('trash:list'),
     restore: (batchId) => ipcRenderer.invoke('trash:restore', batchId),
-    deleteForever: (batchId) => ipcRenderer.invoke('trash:deleteForever', batchId)
+    deleteForever: (batchId) => ipcRenderer.invoke('trash:deleteForever', batchId),
+    empty: () => ipcRenderer.invoke('trash:empty')
   },
   links: {
     add: (a, b, relation) => ipcRenderer.invoke('links:add', a, b, relation),
