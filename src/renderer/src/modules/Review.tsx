@@ -345,7 +345,7 @@ function SavingsCard({ data, onNavigate }: GoTo) {
         <span className="block pt-2.5">
           <ProgressBar percent={pct} tone="mood" />
           <span className="meta mt-1.5 flex justify-between gap-2">
-            <span className="truncate">{focus.name}</span>
+            <span className="min-w-0 line-clamp-2" title={focus.name}>{focus.name}</span>
             <span className="num shrink-0">{Math.floor(pct)}% of {fmtAmount(focus.target as number)}</span>
           </span>
         </span>
