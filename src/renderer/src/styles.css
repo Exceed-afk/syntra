@@ -58,8 +58,6 @@ body { @apply bg-bg font-sans text-fg antialiased; transition: background-color 
    fixed colour: the thumb is the text colour at 35% (dark on every light palette, light on every dark one). */
 * {
   @apply transition-colors duration-150;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(var(--fg) / .35) rgb(var(--surface) / .2);
 }
 /* Chromium (the only engine the app runs in) draws the same scrollbar: a rounded thumb inset by a 3px
    transparent border, a transparent track and a clearly brighter hover state. The box is 12px wide, so the
