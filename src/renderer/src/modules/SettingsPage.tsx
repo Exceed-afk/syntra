@@ -10,6 +10,8 @@ import { AppearanceSettings } from '../components/AppearanceSettings'
 import { CaptureSettings } from '../components/CaptureSettings'
 import { TemplatesSettings } from '../components/TemplatesSettings'
 import { PageHeader } from '../components/PageHeader'
+import { Segmented } from '../components/Segmented'
+import { SwitchRow } from '../components/SwitchRow'
 import { TOOLS } from '../tools' // circular with the registry, but only read while rendering, never at load time
 import { TOOL_CATEGORIES } from '../../../shared/tools'
 
@@ -76,11 +78,21 @@ export function SettingsPage() {
     <div className="page">
       <PageHeader title="Settings" help="Look, modules, templates, quick capture, tags, your data and shortcuts. Everything saves as you go." />
 
-      <div className="seg mb-5" role="group" aria-label="Settings sections">
-        {TABS.map((t) => <button key={t.id} aria-pressed={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}
-      </div>
+      <Segmented label="Settings sections" kind="tabs" value={tab} onChange={setTab}
+        options={TABS.map((t) => ({ id: t.id, label: t.label }))} />
 
-      {tab === 'appearance' && <div className="space-y-4"><AppearanceSettings /></div>}
+      {tab === 'appearance' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {['Mode', 'Style', 'Colours', 'Accent', 'Density', 'Font'].map((label) => (
+              <button key={label} className="btn btn-sm" onClick={() => document.getElementById(`settings-${label.toLowerCase()}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <AppearanceSettings />
+        </div>
+      )}
 
       {tab === 'modules' && (
         <section className="card card-pad-lg">
@@ -88,45 +100,24 @@ export function SettingsPage() {
           <p className="mt-2 text-sm text-muted">
             Toggle modules on or off to keep your sidebar focused on the tools you use. Disabled modules are hidden from navigation and the command palette (so {primaryLabel(PLATFORM)}+K no longer finds them until they are on again).
           </p>
-          <ul className="mt-4 flex flex-col divide-y divide-line/60">
+          <div className="mt-4 flex flex-col gap-2">
             {TOOLS.filter((t) => !t.footer && t.id !== 'dashboard').map((t) => {
-              const Icon = t.icon
               const isOff = (settings.disabledModules ?? []).includes(t.id)
               return (
-                <li key={t.id} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-muted">
-                      <Icon size={18} />
-                    </span>
-                    <div>
-                      <div className="text-sm font-medium">{t.name}</div>
-                      <div className="text-xs text-muted">{TOOL_CATEGORIES.find((c) => c.id === t.category)?.name ?? t.category}</div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={!isOff}
-                    aria-label={`Toggle ${t.name}`}
-                    onClick={() => {
-                      const cur = settings.disabledModules ?? []
-                      const next = isOff ? cur.filter((id) => id !== t.id) : [...cur, t.id]
-                      updateSettings({ disabledModules: next })
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      !isOff ? 'bg-accent' : 'bg-line'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        !isOff ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </li>
+                <SwitchRow
+                  key={t.id}
+                  label={t.name}
+                  description={TOOL_CATEGORIES.find((c) => c.id === t.category)?.name ?? t.category}
+                  checked={!isOff}
+                  onChange={(checked) => {
+                    const cur = settings.disabledModules ?? []
+                    const next = checked ? cur.filter((id) => id !== t.id) : [...cur, t.id]
+                    updateSettings({ disabledModules: next })
+                  }}
+                />
               )
             })}
-          </ul>
+          </div>
         </section>
       )}
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Density, FontChoice, Radius, TextSize, ThemeMode, UiStyle } from '../../../shared/types'
 import { FONT_STACKS, OVERRIDE_KEYS, PALETTES, STYLE_PRESETS, cardBorder, contrast, hexToRgb, resolveTokens, rgbToHex } from '../../../shared/appearance'
@@ -20,10 +21,10 @@ function Segmented<T extends string>({ label, value, options, onChange }: {
   )
 }
 
-function Group({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function Group({ title, hint, id, children }: { title: string; hint?: string; id?: string; children: ReactNode }) {
   return (
     <div className="mt-6 first:mt-0">
-      <h3 className="text-sm font-medium">{title}</h3>
+      <h3 id={id} className="text-sm font-medium">{title}</h3>
       {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
       <div className="mt-3">{children}</div>
     </div>
@@ -42,7 +43,7 @@ function StylePreview({ minimal }: { minimal: boolean }) {
   const r = minimal ? 2 : 7
   const line = '1px solid rgb(var(--line))'
   return (
-    <div className="flex h-20 overflow-hidden" style={{ background: 'rgb(var(--bg))', border: line, borderRadius: minimal ? 3 : 10 }}>
+    <div className="flex h-16 overflow-hidden" style={{ background: 'rgb(var(--bg))', border: line, borderRadius: minimal ? 3 : 10 }}>
       <div className="flex flex-col" style={{ width: 30, gap: 4, padding: '8px 5px', borderRight: line, background: minimal ? 'rgb(var(--bg))' : 'rgb(var(--panel))' }}>
         <i style={{ height: 7, borderRadius: r, background: minimal ? 'transparent' : 'rgb(var(--accent) / .3)', boxShadow: minimal ? 'inset 2px 0 rgb(var(--accent))' : 'none' }} />
         <i style={{ height: 7, borderRadius: r, background: 'rgb(var(--fg) / .12)' }} />
@@ -61,7 +62,7 @@ function ThemePreview({ tokens, minimal }: { tokens: ReturnType<typeof resolveTo
   const border = rgbToHex(cardBorder(tokens, minimal ? 'minimal' : 'modern'))
   const bg = minimal ? tokens.bg : tokens.surface
   return (
-    <div className="flex h-16 overflow-hidden" style={{ background: tokens.bg, border: `1px solid ${tokens.border}`, borderRadius: minimal ? 3 : 8 }}>
+    <div className="flex h-14 overflow-hidden" style={{ background: tokens.bg, border: `1px solid ${tokens.border}`, borderRadius: minimal ? 3 : 8 }}>
       <div className="flex w-7 shrink-0 flex-col justify-center gap-1 border-r p-1" style={{ background: minimal ? tokens.bg : tokens.sidebar, borderColor: tokens.border }}>
         <i className="h-1 rounded-full" style={{ background: tokens.text }} />
         <i className="h-1 rounded-full" style={{ background: tokens.muted }} />
@@ -98,12 +99,12 @@ export function AppearanceSettings() {
   return (
     <>
       <Card title="Appearance">
-        <Group title="Mode">
+        <Group id="settings-mode" title="Mode">
           <Segmented<ThemeMode> label="Mode" value={s.theme} onChange={(theme) => updateSettings({ theme })}
             options={[{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Light' }, { id: 'system', label: 'System' }]} />
         </Group>
 
-        <Group title="Interface style" hint="Picking a style also sets corner roundness and spacing below; you can still change those afterwards.">
+        <Group id="settings-style" title="Interface style" hint="Picking a style also sets corner roundness and spacing below; you can still change those afterwards.">
           <div className="grid max-w-lg grid-cols-2 gap-3">
             {([['modern', 'Modern', 'Rounded cards with soft shadows'], ['minimal', 'Classic minimal', 'Flat, thin lines, compact']] as const).map(([id, name, desc]) => (
               <button key={id} className="opt" aria-pressed={s.uiStyle === id} onClick={() => pickStyle(id)}>
@@ -116,12 +117,14 @@ export function AppearanceSettings() {
       </Card>
 
       <Card title="Colours">
-        <Group title="Colour themes" hint="Every theme has light and dark variants. Accent and custom colours are independent.">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Group id="settings-colours" title="Colour themes" hint="Every theme has light and dark variants. Accent and custom colours are independent.">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
             {PALETTES.map((p) => {
               const t = resolveTokens({ palette: p.id, colors: { light: {}, dark: {} } }, dark)
+              const selected = s.palette === p.id
               return (
-                <button key={p.id} className="opt" aria-pressed={s.palette === p.id} onClick={() => updateSettings({ palette: p.id })}>
+                <button key={p.id} className="opt relative" aria-pressed={selected} onClick={() => updateSettings({ palette: p.id })}>
+                  {selected && <Check size={14} className="absolute right-2 top-2 text-accent" aria-hidden="true" />}
                   <ThemePreview tokens={t} minimal={s.uiStyle === 'minimal'} />
                   <span className="opt-name">{p.name}</span>
                 </button>
@@ -130,7 +133,7 @@ export function AppearanceSettings() {
           </div>
         </Group>
 
-        <Group title="Accent colour" hint="Buttons, highlights and progress bars. Text and icons adjust automatically for contrast.">
+        <Group id="settings-accent" title="Accent colour" hint="Buttons, highlights and progress bars. Text and icons adjust automatically for contrast.">
           <div className="flex flex-wrap items-center gap-3">
             {ACCENT_PRESETS.map((a) => (
               <button key={a.hex} title={a.name} aria-label={a.name} aria-pressed={s.accent === a.hex} onClick={() => updateSettings({ accent: a.hex })}
@@ -173,7 +176,7 @@ export function AppearanceSettings() {
           <Segmented<Radius> label="Corner roundness" value={s.radius} onChange={(radius) => updateSettings({ radius })}
             options={[{ id: 'sharp', label: 'Sharp' }, { id: 'soft', label: 'Soft' }, { id: 'round', label: 'Round' }]} />
         </Group>
-        <Group title="Spacing" hint="How much room there is inside cards, lists and buttons.">
+        <Group id="settings-density" title="Spacing" hint="How much room there is inside cards, lists and buttons.">
           <Segmented<Density> label="Spacing" value={s.density} onChange={(density) => updateSettings({ density })}
             options={[{ id: 'compact', label: 'Compact' }, { id: 'comfortable', label: 'Comfortable' }, { id: 'spacious', label: 'Spacious' }]} />
         </Group>
@@ -181,7 +184,7 @@ export function AppearanceSettings() {
           <Segmented<TextSize> label="Text size" value={s.textSize} onChange={(textSize) => updateSettings({ textSize })}
             options={[{ id: 'small', label: 'Small' }, { id: 'default', label: 'Default' }, { id: 'large', label: 'Large' }]} />
         </Group>
-        <Group title="Font" hint="Fonts already on your computer; nothing is downloaded.">
+        <Group id="settings-font" title="Font" hint="Fonts already on your computer; nothing is downloaded.">
           <Segmented<FontChoice> label="Font" value={s.font} onChange={(font) => updateSettings({ font })}
             options={([['system', 'Default'], ['clean', 'Clean'], ['serif', 'Serif'], ['mono', 'Mono']] as const).map(([id, label]) => ({ id, label, font: FONT_STACKS[id] }))} />
         </Group>
