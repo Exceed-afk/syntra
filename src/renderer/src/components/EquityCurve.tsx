@@ -73,10 +73,6 @@ export function EquityCurve({ points, drawdown, directions }: {
   // Keeps the two labels readable when a marker sits near an edge.
   const labelX = (i: number): number => x(i) + (x(i) > W * 0.72 ? -8 : 8)
   const labelAnchor = (i: number): 'start' | 'end' => (x(i) > W * 0.72 ? 'end' : 'start')
-  // The trough label normally sits below the marker, but never on top of the
-  // zero line and never past the bottom edge.
-  const troughBelow = y(drawdown.troughValue) < H - PAD.b - 30 &&
-    Math.abs(y(drawdown.troughValue) - y(0)) >= 34
 
   const onMove = (event: MouseEvent<SVGSVGElement>): void => {
     const box = event.currentTarget.getBoundingClientRect()
@@ -125,7 +121,7 @@ export function EquityCurve({ points, drawdown, directions }: {
         {drawdown.amount > 0 && peakValueIndex >= 0 && (
           <g className="text-fg">
             <circle cx={x(peakValueIndex)} cy={y(drawdown.peakValue)} r="4" fill="currentColor" className="stroke-card" strokeWidth="2" />
-            <text x={labelX(peakValueIndex)} y={y(drawdown.peakValue) + (y(drawdown.peakValue) > PAD.t + 12 ? -9 : 18)}
+            <text x={labelX(peakValueIndex)} y={Math.max(y(drawdown.peakValue) - 9, PAD.t + 10)}
               textAnchor={labelAnchor(peakValueIndex)} fontSize="12" className="fill-fg stroke-card"
               strokeWidth="3" paintOrder="stroke">
               {drawdown.peakDate ? 'Peak ' : 'Start '}{fmtPnl(drawdown.peakValue)}
@@ -135,7 +131,7 @@ export function EquityCurve({ points, drawdown, directions }: {
         {drawdown.amount > 0 && troughValueIndex >= 0 && (
           <g className="text-fg">
             <circle cx={x(troughValueIndex)} cy={y(drawdown.troughValue)} r="4" fill="currentColor" className="stroke-card" strokeWidth="2" />
-            <text x={labelX(troughValueIndex)} y={y(drawdown.troughValue) + (troughBelow ? 17 : -9)}
+            <text x={labelX(troughValueIndex)} y={Math.min(y(drawdown.troughValue) + 17, H - PAD.b - 4)}
               textAnchor={labelAnchor(troughValueIndex)} fontSize="12" className="fill-fg stroke-card"
               strokeWidth="3" paintOrder="stroke">
               Trough {fmtPnl(drawdown.troughValue)}
