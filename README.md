@@ -96,6 +96,8 @@ Every page is built from the pieces in `src/renderer/src/components/`. The rules
 
 **Focus and Escape.** Every popover, panel and dialog closes on Escape and gives focus back. Popovers close on a click outside.
 
+**Popover bounds.** The shared `components/Popover.tsx` keeps itself inside the window after it opens: at least 8px from every edge, shifted left or right when the trigger is near a side, and flipped above the trigger when the bottom would overflow. Its width is capped at `min(320px, 100vw - 16px)` and it scrolls inside itself when tall. Help, date-range, filter and saved-view popovers all use it.
+
 **Scrolling.** All page scrolling happens inside `<main>` (`html` is clamped to the viewport), and `<main>` reserves its scrollbar room on both sides (`scrollbar-gutter: stable both-edges`). A short page and a long page therefore have the same layout width: switching between them, or opening a Modal / SidePanel / the command palette, never shifts the page left or right. Scrollbars are styled once, app-wide, from theme tokens (`scrollbar-width: thin`, a 12px `::-webkit-scrollbar` with a rounded thumb and a brighter hover state), so all 13 palettes and light / dark follow; inner lists that scroll (`tbl-wrap`, `.cp-list`, the side panel body, popovers) keep the same style and reserve their own gutter so their contents do not jump either.
 
 ## Dashboard and Templates (Phase 6)

@@ -1044,11 +1044,10 @@ input[type='checkbox'], input[type='radio'] { accent-color: rgb(var(--accent)); 
   /* Popover. */
   /* A popover that is taller than the window scrolls inside itself. `stable` (one edge: these hug the
      toolbar's side) keeps its contents from shifting when that happens. */
-  .popover { position: absolute; top: calc(100% + .375rem); left: 0; z-index: 40; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); max-height: calc(100vh - 8rem); overflow-y: auto; scrollbar-gutter: stable; padding: .75rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); background: rgb(var(--card)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); }
+  .popover { position: absolute; top: calc(100% + .375rem); left: 0; z-index: 40; min-width: min(13rem, calc(100vw - 16px)); max-width: min(320px, calc(100vw - 16px)); max-height: calc(100vh - 8rem); overflow-y: auto; scrollbar-gutter: stable; padding: .75rem; border: 1px solid rgb(var(--line)); border-radius: calc(.75rem * var(--rs)); background: rgb(var(--card)); box-shadow: var(--shadow-pop, 0 10px 30px rgb(var(--border) / .35)); }
   .popover[data-align='end'] { left: auto; right: 0; }
   .popover-filters { display: flex; flex-direction: column; gap: .625rem; min-width: 16rem; }
   .popover-actions { display: flex; justify-content: flex-end; padding-top: .25rem; border-top: 1px solid rgb(var(--line)); }
-  .popover-help { max-width: min(22rem, calc(100vw - 2rem)); }
   .popover-help-text { font-size: .8125rem; line-height: 1.55; color: rgb(var(--muted)); }
   .popover-help-text p + p { margin-top: .5rem; }
 
