@@ -218,8 +218,8 @@ export function TradesAnalysis({ range, onRangeChange }: {
         {summaryCard('Net P&L', fmtPnl(summary.totalPnl), 'after fees', pnlColor(summary.totalPnl))}
         {summaryCard('Win rate', summary.winRate === null ? '-' : `${summary.winRate.toFixed(0)}%`,
           `${summary.wins}W · ${summary.losses}L · ${summary.breakeven} flat`)}
-        {summaryCard('Expectancy (net of fees)', summary.expectancy === null ? '-' : fmtPnl(summary.expectancy),
-          'per closed trade', pnlColor(summary.expectancy))}
+        {summaryCard('Expectancy', summary.expectancy === null ? '-' : fmtPnl(summary.expectancy),
+          'per closed trade, net of fees', pnlColor(summary.expectancy))}
         {summaryCard('Profit factor', summary.profitFactor === null ? '-' : summary.profitFactor.toFixed(2),
           summary.profitFactor === null && summary.wins > 0 && summary.losses === 0 ? 'no losses yet' : 'gross wins ÷ losses')}
         {summaryCard('Payoff ratio', summary.payoff === null ? '-' : summary.payoff.toFixed(2),
